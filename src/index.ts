@@ -5,3 +5,4 @@ export * from './dto';
 export * from './filters';
 export * from './core';
 export * from './types';
+export * from './exeption';

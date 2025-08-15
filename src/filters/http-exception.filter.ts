@@ -2,10 +2,11 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logge
 import { Reflector } from '@nestjs/core';
 
 import type { Request, Response } from 'express';
-import { isObject, isString } from 'lodash';
+import { get, isArray, isObject, isString, size } from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
 
 import { ErrorResponseDto } from '../dto/error.response.dto';
+import { ValidationException } from '../exeption';
 
 export interface HttpExceptionFilterOptions {
     isDevelopment: boolean;
@@ -24,7 +25,7 @@ export interface RateLimitTracker {
 }
 
 interface SanitizedError {
-    message: string | string[];
+    message: string;
     stack?: string;
 }
 
@@ -166,7 +167,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
                   };
         }
 
-        const customMessage = this.customErrorMessages[status];
+        const { customErrorMessages } = this;
+        const customMessage = customErrorMessages[status];
         if (customMessage) {
             return {
                 error: this.getErrorNameByStatus(status),
@@ -236,11 +238,67 @@ export class HttpExceptionFilter implements ExceptionFilter {
         correlationId: string,
         exception: unknown,
     ): ErrorResponseDto {
+        // Handle ValidationException specifically
+        if (exception instanceof ValidationException) {
+            const { url } = request;
+            const validationMessages = exception.getValidationMessages();
+            const fieldErrors = exception.getFieldErrors();
+
+            const basePayload: ErrorResponseDto = {
+                statusCode: status,
+                error: 'Validation failed',
+                message: exception.getFirstValidationMessage(),
+                errors: validationMessages,
+                fieldErrors,
+                path: url,
+                timestamp: new Date().toISOString(),
+                requestId: correlationId,
+            };
+
+            // Sanitize validation errors in production
+            if (!this.isDevelopment && this.enableSanitization) {
+                basePayload.message = this.sanitizeString(basePayload.message);
+                if (basePayload.errors) {
+                    basePayload.errors = basePayload.errors.map((error) => this.sanitizeString(error));
+                }
+                if (basePayload.fieldErrors) {
+                    Object.keys(basePayload.fieldErrors).forEach((property) => {
+                        basePayload.fieldErrors![property] = basePayload.fieldErrors![property].map((error) =>
+                            this.sanitizeString(error),
+                        );
+                    });
+                }
+            }
+
+            return basePayload;
+        }
+
+        // Handle other error types
+        let message: string;
+        let errors: string[] | undefined;
+
+        if (isString(errorResponse)) {
+            message = errorResponse;
+        } else if (isArray(errorResponse.message)) {
+            const firstMessage = get(errorResponse, 'message[0]', 'Validation failed');
+            const remainingMessages = get(errorResponse, 'message.slice(1)', []);
+            message = firstMessage;
+            errors = size(remainingMessages) > 0 ? remainingMessages : undefined;
+        } else if (isString(errorResponse.message)) {
+            const { message: errorMessage } = errorResponse;
+            message = errorMessage;
+        } else {
+            const { message: errorMessage } = errorResponse;
+            message = String(errorMessage || 'An error occurred');
+        }
+
+        const { url } = request;
         const basePayload: ErrorResponseDto = {
             statusCode: status,
             error: isString(errorResponse) ? errorResponse : errorResponse.error,
-            message: isString(errorResponse) ? errorResponse : errorResponse.message,
-            path: request.url,
+            message,
+            errors,
+            path: url,
             timestamp: new Date().toISOString(),
             requestId: correlationId,
         };
@@ -257,12 +315,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
                 basePayload.details = errorResponse.details as Record<string, unknown>;
             }
 
-            basePayload.method = request.method;
-            basePayload.userAgent = request.headers['user-agent'];
+            const { method, headers } = request;
+            basePayload.method = method;
+            basePayload.userAgent = headers['user-agent'];
         }
 
         // Sanitize error messages in production
         if (!this.isDevelopment && this.enableSanitization) {
+            // Sanitize main message
             const sanitized = this.sanitizeError({
                 message: basePayload.message,
                 stack: basePayload.stack,
@@ -271,40 +331,37 @@ export class HttpExceptionFilter implements ExceptionFilter {
             if (basePayload.stack) {
                 basePayload.stack = sanitized.stack;
             }
+
+            // Sanitize validation errors if present
+            if (basePayload.errors && isArray(basePayload.errors)) {
+                basePayload.errors = basePayload.errors.map((error) => this.sanitizeString(error));
+            }
         }
 
         return basePayload;
     }
 
     private sanitizeError(error: SanitizedError): SanitizedError {
-        let sanitizedMessage: string;
-        let sanitizedStack: string;
-
-        // Ensure message is a string before sanitizing
-        if (Array.isArray(error.message)) {
-            sanitizedMessage = error.message.join(', ');
-        } else if (isString(error.message)) {
-            sanitizedMessage = error.message;
-        } else {
-            sanitizedMessage = String(error.message || '');
-        }
-
-        // Ensure stack is a string before sanitizing
-        if (isString(error.stack)) {
-            sanitizedStack = error.stack;
-        } else {
-            sanitizedStack = String(error.stack || '');
-        }
-
-        this.sensitivePatterns.forEach((pattern) => {
-            sanitizedMessage = sanitizedMessage.replace(pattern, '[REDACTED]');
-            sanitizedStack = sanitizedStack.replace(pattern, '[REDACTED]');
-        });
+        const sanitizedMessage = this.sanitizeString(error.message);
+        const sanitizedStack = this.sanitizeString(error.stack || '');
 
         return {
             message: sanitizedMessage,
             stack: sanitizedStack,
         };
+    }
+
+    private sanitizeString(input: string): string {
+        if (!isString(input)) {
+            return String(input || '');
+        }
+
+        let sanitized = input;
+        this.sensitivePatterns.forEach((pattern) => {
+            sanitized = sanitized.replace(pattern, '[REDACTED]');
+        });
+
+        return sanitized;
     }
 
     private setSecurityHeaders(response: Response): void {
@@ -324,13 +381,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
         correlationId: string,
         clientIp: string,
     ): void {
+        const { method, url, headers } = request;
         const logContext = {
             correlationId,
             status,
-            method: request.method,
-            url: request.url,
+            method,
+            url,
             clientIp,
-            userAgent: request.headers['user-agent'],
+            userAgent: headers['user-agent'],
             timestamp: new Date().toISOString(),
         };
 

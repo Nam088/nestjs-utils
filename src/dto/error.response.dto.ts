@@ -17,10 +17,27 @@ export class ErrorResponseDto {
     error!: string;
 
     @ApiProperty({
-        description: 'A detailed error message or an array of validation errors.',
+        description: 'A detailed error message.',
         example: 'An unexpected error occurred while processing your request.',
     })
-    message!: string | string[];
+    message!: string;
+
+    @ApiProperty({
+        description: 'Validation errors array, present when validation fails.',
+        example: ['Email is required', 'Password must be at least 8 characters'],
+        required: false,
+    })
+    errors?: string[];
+
+    @ApiProperty({
+        description: 'Validation errors grouped by field name, present when validation fails.',
+        example: {
+            email: ['Email is required', 'Email must be valid'],
+            password: ['Password must be at least 8 characters'],
+        },
+        required: false,
+    })
+    fieldErrors?: Record<string, string[]>;
 
     @ApiProperty({
         description: 'The path of the request that resulted in an error.',

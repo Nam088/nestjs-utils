@@ -502,6 +502,68 @@ app.useGlobalFilters(
 );
 ```
 
+#### Validation Exception
+
+Custom validation exception with structured error handling:
+
+```typescript
+import { ValidationException } from '@ecom-co/utils';
+
+// Manual validation
+if (!user.email) {
+  throw new ValidationException([
+    {
+      property: 'email',
+      constraints: {
+        isNotEmpty: 'Email is required'
+      }
+    }
+  ]);
+}
+
+// Multiple validation errors
+if (!user.email || !user.password) {
+  throw new ValidationException([
+    {
+      property: 'email',
+      constraints: {
+        isNotEmpty: 'Email is required'
+      }
+    },
+    {
+      property: 'password',
+      constraints: {
+        isNotEmpty: 'Password is required',
+        minLength: 'Password must be at least 8 characters'
+      }
+    }
+  ]);
+}
+```
+
+**Response Format:**
+```json
+{
+  "statusCode": 400,
+  "error": "Bad Request",
+  "message": "Email is required",
+  "errors": [
+    "Email is required",
+    "Password must be at least 8 characters"
+  ],
+  "fieldErrors": {
+    "email": ["Email is required"],
+    "password": [
+      "Password is required", 
+      "Password must be at least 8 characters"
+    ]
+  },
+  "path": "/api/users",
+  "timestamp": "2025-01-15T10:30:00.000Z",
+  "requestId": "abc123-def456-ghi789"
+}
+```
+
 ## 🎯 Examples
 
 ### Complete E-commerce Product Controller
@@ -897,6 +959,28 @@ export class OrderDto {
 ```
 
 ## 🛠️ Configuration
+
+### Validation Configuration
+
+```typescript
+import { validationPipeConfig } from '@ecom-co/utils';
+
+// In your main.ts
+const app = await NestFactory.create(AppModule);
+
+// Setup global validation pipe with custom exception factory
+app.useGlobalPipes(validationPipeConfig);
+
+// Or custom configuration
+app.useGlobalPipes(
+  new ValidationPipe({
+    transform: true,
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    exceptionFactory: validationExceptionFactory,
+  })
+);
+```
 
 ### Swagger Configuration
 
