@@ -413,9 +413,30 @@ Global exception handling with standardized error responses.
 
 ```typescript
 import { HttpExceptionFilter } from '@ecom-co/utils';
+import { Reflector } from '@nestjs/core';
 
-@UseFilters(HttpExceptionFilter)
+// In your main.ts
+app.useGlobalFilters(new HttpExceptionFilter(app.get(Reflector)));
+
+// Or in a controller
+@UseFilters(new HttpExceptionFilter(reflector))
 export class AppController {}
+
+// With custom options
+app.useGlobalFilters(
+  new HttpExceptionFilter(
+    app.get(Reflector),
+    {
+      isDevelopment: process.env.NODE_ENV === 'development',
+      enableSanitization: true,
+      enableRateLimitTracking: true,
+      customErrorMessages: {
+        404: 'Resource not found',
+        500: 'Internal server error'
+      }
+    }
+  )
+);
 ```
 
 ## ⚙️ Configuration

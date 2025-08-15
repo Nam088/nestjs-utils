@@ -1,4 +1,5 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 
 import type { Request, Response } from 'express';
 import { isObject, isString } from 'lodash';
@@ -30,6 +31,7 @@ interface SanitizedError {
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
     private readonly logger = new Logger(HttpExceptionFilter.name);
+    private readonly reflector: Reflector;
     private readonly isDevelopment: boolean;
     private readonly enableSanitization: boolean;
     private readonly enableRateLimitTracking: boolean;
@@ -52,10 +54,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
     ];
 
     constructor(
+        reflector: Reflector,
         options?: HttpExceptionFilterOptions,
         errorMetrics?: ErrorMetrics,
         rateLimitTracker?: RateLimitTracker,
     ) {
+        this.reflector = reflector;
         this.isDevelopment = options?.isDevelopment ?? false;
         this.enableSanitization = options?.enableSanitization ?? true;
         this.enableRateLimitTracking = options?.enableRateLimitTracking ?? false;
