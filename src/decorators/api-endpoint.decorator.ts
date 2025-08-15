@@ -252,22 +252,87 @@ const createCommonErrorDecorators = (): MethodDecorator[] => [
     ApiBadRequestResponse({
         description: 'Bad Request - Invalid input data',
         type: ErrorResponseDto,
+        examples: {
+            'Bad Request': {
+                summary: 'Bad Request Example',
+                value: {
+                    statusCode: 400,
+                    error: 'Bad Request',
+                    message: 'Invalid input data provided',
+                    path: '/api/example',
+                    timestamp: '2025-01-15T10:30:00.000Z',
+                    requestId: 'abc123-def456-ghi789',
+                },
+            },
+        },
     }),
     ApiNotFoundResponse({
         description: 'Resource not found',
         type: ErrorResponseDto,
+        examples: {
+            'Not Found': {
+                summary: 'Not Found Example',
+                value: {
+                    statusCode: 404,
+                    error: 'Not Found',
+                    message: 'The requested resource was not found',
+                    path: '/api/example',
+                    timestamp: '2025-01-15T10:30:00.000Z',
+                    requestId: 'abc123-def456-ghi789',
+                },
+            },
+        },
     }),
     ApiConflictResponse({
         description: 'Conflict - Resource already exists or constraint violation',
         type: ErrorResponseDto,
+        examples: {
+            Conflict: {
+                summary: 'Conflict Example',
+                value: {
+                    statusCode: 409,
+                    error: 'Conflict',
+                    message: 'Resource already exists or constraint violation',
+                    path: '/api/example',
+                    timestamp: '2025-01-15T10:30:00.000Z',
+                    requestId: 'abc123-def456-ghi789',
+                },
+            },
+        },
     }),
     ApiInternalServerErrorResponse({
         description: 'Internal Server Error',
         type: ErrorResponseDto,
+        examples: {
+            'Internal Server Error': {
+                summary: 'Internal Server Error Example',
+                value: {
+                    statusCode: 500,
+                    error: 'Internal Server Error',
+                    message: 'An unexpected error occurred while processing your request',
+                    path: '/api/example',
+                    timestamp: '2025-01-15T10:30:00.000Z',
+                    requestId: 'abc123-def456-ghi789',
+                },
+            },
+        },
     }),
     ApiTooManyRequestsResponse({
         description: 'Too Many Requests - Rate limit exceeded',
         type: ErrorResponseDto,
+        examples: {
+            'Too Many Requests': {
+                summary: 'Rate Limit Exceeded Example',
+                value: {
+                    statusCode: 429,
+                    error: 'Too Many Requests',
+                    message: 'Rate limit exceeded. Please try again later',
+                    path: '/api/example',
+                    timestamp: '2025-01-15T10:30:00.000Z',
+                    requestId: 'abc123-def456-ghi789',
+                },
+            },
+        },
     }),
 ];
 
@@ -309,6 +374,19 @@ const createCustomErrorDecorators = (errors: (HttpStatus | CustomErrorConfig)[])
                 status: error,
                 description: getHttpStatusDescription(error),
                 type: ErrorResponseDto,
+                examples: {
+                    [getHttpStatusDescription(error)]: {
+                        summary: `${getHttpStatusDescription(error)} Example`,
+                        value: {
+                            statusCode: error,
+                            error: getHttpStatusDescription(error),
+                            message: getDefaultErrorMessage(error),
+                            path: '/api/example',
+                            timestamp: '2025-01-15T10:30:00.000Z',
+                            requestId: 'abc123-def456-ghi789',
+                        },
+                    },
+                },
             });
         }
         // Custom error configuration
@@ -337,6 +415,25 @@ const getHttpStatusDescription = (status: HttpStatus): string => {
     };
 
     return statusDescriptions[status] || `HTTP ${status}`;
+};
+
+/**
+ * Get default error message for HTTP status codes
+ */
+const getDefaultErrorMessage = (status: HttpStatus): string => {
+    const errorMessages: Partial<Record<HttpStatus, string>> = {
+        [HttpStatus.BAD_REQUEST]: 'Invalid input data provided',
+        [HttpStatus.UNAUTHORIZED]: 'Invalid or missing authentication',
+        [HttpStatus.FORBIDDEN]: 'Insufficient permissions',
+        [HttpStatus.NOT_FOUND]: 'The requested resource was not found',
+        [HttpStatus.CONFLICT]: 'Resource already exists or constraint violation',
+        [HttpStatus.UNPROCESSABLE_ENTITY]: 'The request data is invalid',
+        [HttpStatus.TOO_MANY_REQUESTS]: 'Rate limit exceeded. Please try again later',
+        [HttpStatus.INTERNAL_SERVER_ERROR]: 'An unexpected error occurred while processing your request',
+        [HttpStatus.SERVICE_UNAVAILABLE]: 'Service is temporarily unavailable',
+    };
+
+    return errorMessages[status] || 'An error occurred';
 };
 
 /**
