@@ -49,3 +49,47 @@ export const productionValidationPipeConfig = new ValidationPipe({
         value: false,
     },
 });
+
+/**
+ * Validation pipe options interface
+ */
+export interface ValidationPipeOptions {
+    isDevelopment?: boolean;
+    transform?: boolean;
+    whitelist?: boolean;
+    forbidNonWhitelisted?: boolean;
+    forbidUnknownValues?: boolean;
+    disableErrorMessages?: boolean;
+    customExceptionFactory?: (errors: ValidationError[]) => any;
+}
+
+/**
+ * Setup validation pipe based on environment with custom options
+ */
+export const getValidationPipeConfig = (options: ValidationPipeOptions = {}) => {
+    const {
+        isDevelopment = process.env.NODE_ENV === 'development',
+        transform = true,
+        whitelist = true,
+        forbidNonWhitelisted = true,
+        forbidUnknownValues = true,
+        disableErrorMessages = false,
+        customExceptionFactory,
+    } = options;
+
+    const baseConfig = {
+        isDevelopment,
+        transform,
+        whitelist,
+        forbidNonWhitelisted,
+        forbidUnknownValues,
+        disableErrorMessages,
+        exceptionFactory: customExceptionFactory || validationExceptionFactory,
+        validationError: {
+            target: false,
+            value: false,
+        },
+    };
+
+    return new ValidationPipe(baseConfig);
+};
