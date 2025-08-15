@@ -5,8 +5,8 @@ import type { Request, Response } from 'express';
 import { get, isArray, isObject, isString, size } from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
 
-import { ValidationException } from './validation.exception';
 import { ErrorResponseDto } from '../dto/error.response.dto';
+import { ValidationException } from '../exeption';
 
 export interface HttpExceptionFilterOptions {
     isDevelopment: boolean;
