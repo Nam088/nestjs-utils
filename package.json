@@ -1,15 +1,21 @@
 {
-  "name": "@ecom/utils",
+  "name": "@ecom-co/utils",
   "version": "0.0.1",
-  "private": true,
   "description": "Utils library for e-commerce platform",
-  "author": "",
+  "author": "Nam077",
   "license": "ISC",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ecom-co/lib-utils.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "build:watch": "tsc -p tsconfig.build.json --watch",
