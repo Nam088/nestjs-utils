@@ -51,7 +51,7 @@ export const ApiResponseDto = <T>(dataType: Type<T> | null): Type<IApiResponse<T
  * A concrete implementation class for creating standardized API responses within services.
  * @template T The type of the data payload.
  */
-export class ApiResponse<T> implements IApiResponse<T> {
+export class ApiResponseData<T> implements IApiResponse<T> {
     statusCode: number;
     message: string;
     data: T;
