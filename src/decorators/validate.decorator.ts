@@ -87,21 +87,42 @@ export const IsPassword =
         });
     };
 
-// Enhanced interfaces
+// Enhanced interfaces with better flexibility
 interface IFieldOptions {
     each?: boolean;
     swagger?: boolean;
     nullable?: boolean;
     groups?: string[];
     required?: boolean;
-    transform?: (value: any) => any;
+    transform?: (value: unknown) => unknown;
     validationOptions?: ValidationOptions;
+    message?: string | ((validationArguments: ValidationArguments) => string);
+    messages?: {
+        required?: string;
+        invalid?: string;
+        nullable?: string;
+        [key: string]: string | undefined;
+    };
+    // Allow custom validation decorators
+    customValidators?: PropertyDecorator[];
+    // Allow custom transform decorators
+    customTransforms?: PropertyDecorator[];
+    // Skip default validations
+    skipDefaultValidation?: boolean;
 }
 
 interface IArrayFieldOptions extends IFieldOptions {
     minSize?: number;
     maxSize?: number;
     uniqueItems?: boolean;
+    messages?: {
+        required?: string;
+        invalid?: string;
+        minSize?: string;
+        maxSize?: string;
+        uniqueItems?: string;
+        [key: string]: string | undefined;
+    };
 }
 
 interface INumberFieldOptions extends IFieldOptions {
@@ -111,6 +132,15 @@ interface INumberFieldOptions extends IFieldOptions {
     isPositive?: boolean;
     allowInfinity?: boolean;
     allowNaN?: boolean;
+    messages?: {
+        required?: string;
+        invalid?: string;
+        min?: string;
+        max?: string;
+        int?: string;
+        positive?: string;
+        [key: string]: string | undefined;
+    };
 }
 
 interface IStringFieldOptions extends IFieldOptions {
@@ -121,6 +151,20 @@ interface IStringFieldOptions extends IFieldOptions {
     trim?: boolean;
     pattern?: RegExp;
     format?: 'email' | 'url' | 'uuid' | 'phone' | 'alphanumeric' | 'hexColor' | 'ip' | 'json' | 'base64';
+    skipLengthValidation?: boolean;
+    messages?: {
+        required?: string;
+        invalid?: string;
+        minLength?: string;
+        maxLength?: string;
+        pattern?: string;
+        format?: string;
+        email?: string;
+        url?: string;
+        uuid?: string;
+        phone?: string;
+        [key: string]: string | undefined;
+    };
 }
 
 interface IEnumFieldOptions extends IFieldOptions {
@@ -130,6 +174,13 @@ interface IEnumFieldOptions extends IFieldOptions {
 interface IDateFieldOptions extends IFieldOptions {
     minDate?: Date;
     maxDate?: Date;
+    messages?: {
+        required?: string;
+        invalid?: string;
+        minDate?: string;
+        maxDate?: string;
+        [key: string]: string | undefined;
+    };
 }
 
 interface IFileFieldOptions extends IFieldOptions {
@@ -158,14 +209,50 @@ export const addConditionalDecorator = (
     }
 };
 
-export const handleNullableAndRequired = (decorators: PropertyDecorator[], options: IFieldOptions): void => {
-    const validationOptions = get(options, 'validationOptions', {});
-    const eachOption = { each: get(options, 'each', false), ...validationOptions };
+export const createValidationOptions = (
+    options: IFieldOptions,
+    messageKey?: string,
+    defaultMessage?: string,
+): ValidationOptions => {
+    const validationOptions = get(options, 'validationOptions', {}) as ValidationOptions;
+    const each = get(options, 'each', false);
 
+    let message: string | undefined = defaultMessage;
+
+    // Priority: specific message > messages object > general message > validationOptions.message > default
+    if (messageKey && options.messages && options.messages[messageKey]) {
+        message = options.messages[messageKey];
+    } else if (options.message) {
+        message = isFunction(options.message) ? undefined : options.message;
+    } else if (validationOptions.message) {
+        message = validationOptions.message as string;
+    }
+
+    return {
+        each,
+        message,
+        groups: options.groups,
+        ...validationOptions,
+    };
+};
+
+// Helper to add custom decorators
+export const addCustomDecorators = (decorators: PropertyDecorator[], options: IFieldOptions): void => {
+    if (options.customValidators) {
+        decorators.push(...options.customValidators);
+    }
+    if (options.customTransforms) {
+        decorators.push(...options.customTransforms);
+    }
+};
+
+export const handleNullableAndRequired = (decorators: PropertyDecorator[], options: IFieldOptions): void => {
     if (get(options, 'nullable', false)) {
-        decorators.push(IsNullable(eachOption));
+        const nullableOptions = createValidationOptions(options, 'nullable', '$property cannot be null');
+        decorators.push(IsNullable(nullableOptions));
     } else {
-        decorators.push(NotEquals(null, eachOption));
+        const notNullOptions = createValidationOptions(options, 'required', '$property should not be null');
+        decorators.push(NotEquals(null, notNullOptions));
     }
 };
 
@@ -228,29 +315,53 @@ export const NumberField = (
     options: Omit<ApiPropertyOptions, 'type'> & INumberFieldOptions = {},
 ): PropertyDecorator => {
     const decorators = [Type(() => Number)];
-    const validationOptions = merge({ each: get(options, 'each', false) }, get(options, 'validationOptions', {}));
 
-    handleNullableAndRequired(decorators, options);
-    addTransformDecorator(decorators, options);
-    addSwaggerDecorator(decorators, options as Record<string, unknown>, Number);
+    // Add custom decorators first
+    addCustomDecorators(decorators, options);
 
-    // Enhanced number validation
-    const numberOptions = {
-        allowNaN: get(options, 'allowNaN', false),
-        allowInfinity: get(options, 'allowInfinity', false),
-    };
+    if (!get(options, 'skipDefaultValidation', false)) {
+        handleNullableAndRequired(decorators, options);
+        addTransformDecorator(decorators, options);
 
-    if (get(options, 'int', false)) {
-        decorators.push(IsInt(validationOptions));
-    } else {
-        decorators.push(IsNumber(numberOptions, validationOptions));
+        // Enhanced number validation
+        const numberOptions = {
+            allowNaN: get(options, 'allowNaN', false),
+            allowInfinity: get(options, 'allowInfinity', false),
+        };
+
+        if (get(options, 'int', false)) {
+            const intOptions = createValidationOptions(options, 'int', '$property must be an integer number');
+            decorators.push(IsInt(intOptions));
+        } else {
+            const numberValidationOptions = createValidationOptions(options, 'invalid', '$property must be a number');
+            decorators.push(IsNumber(numberOptions, numberValidationOptions));
+        }
+
+        if (!isNil(options.min)) {
+            const minOptions = createValidationOptions(
+                options,
+                'min',
+                `$property must not be less than ${options.min}`,
+            );
+            decorators.push(Min(options.min, minOptions));
+        }
+
+        if (!isNil(options.max)) {
+            const maxOptions = createValidationOptions(
+                options,
+                'max',
+                `$property must not be greater than ${options.max}`,
+            );
+            decorators.push(Max(options.max, maxOptions));
+        }
+
+        if (get(options, 'isPositive', false)) {
+            const positiveOptions = createValidationOptions(options, 'positive', '$property must be a positive number');
+            decorators.push(IsPositive(positiveOptions));
+        }
     }
 
-    addConditionalDecorator(decorators, options.min, Min(options.min!, validationOptions));
-
-    addConditionalDecorator(decorators, options.max, Max(options.max!, validationOptions));
-
-    addConditionalDecorator(decorators, options.isPositive, IsPositive(validationOptions));
+    addSwaggerDecorator(decorators, options as Record<string, unknown>, Number);
 
     return applyDecorators(...decorators);
 };
@@ -267,75 +378,139 @@ export const StringField = (
     options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
 ): PropertyDecorator => {
     const decorators = [Type(() => String)];
-    const validationOptions = merge({ each: get(options, 'each', false) }, get(options, 'validationOptions', {}));
 
-    decorators.push(IsString(validationOptions));
-    handleNullableAndRequired(decorators, options);
-    addTransformDecorator(decorators, options);
+    // Add custom decorators first
+    addCustomDecorators(decorators, options);
+
+    if (!get(options, 'skipDefaultValidation', false)) {
+        const stringOptions = createValidationOptions(options, 'invalid', '$property must be a string');
+        decorators.push(IsString(stringOptions));
+
+        handleNullableAndRequired(decorators, options);
+        addTransformDecorator(decorators, options);
+
+        // Enhanced string transformations
+        if (get(options, 'trim', true)) {
+            decorators.push(Transform(({ value }): string => (isString(value) ? value.trim() : (value as string))));
+        }
+
+        addConditionalDecorator(decorators, options.toLowerCase, ToLowerCase());
+        addConditionalDecorator(decorators, options.toUpperCase, ToUpperCase());
+
+        // Length validation - only add if not explicitly disabled
+        if (!get(options, 'skipLengthValidation', false)) {
+            const minLength = get(options, 'minLength', 1);
+            const minLengthOptions = createValidationOptions(
+                options,
+                'minLength',
+                `$property must be longer than or equal to ${minLength} characters`,
+            );
+            decorators.push(MinLength(minLength, minLengthOptions));
+
+            if (!isNil(options.maxLength)) {
+                const maxLengthOptions = createValidationOptions(
+                    options,
+                    'maxLength',
+                    `$property must be shorter than or equal to ${options.maxLength} characters`,
+                );
+                decorators.push(MaxLength(options.maxLength, maxLengthOptions));
+            }
+        }
+
+        // Pattern validation
+        if (options.pattern) {
+            const patternOptions = createValidationOptions(
+                options,
+                'pattern',
+                '$property must match the required pattern',
+            );
+            decorators.push(
+                Transform(({ value }): string => {
+                    if (isString(value) && options.pattern && !options.pattern.test(value)) {
+                        throw new Error(
+                            (patternOptions.message as string) || `${value} does not match pattern ${options.pattern}`,
+                        );
+                    }
+                    return value;
+                }),
+            );
+        }
+
+        // Format-specific validation
+        const format = get(options, 'format');
+        switch (format) {
+            case 'email': {
+                const emailOptions = createValidationOptions(options, 'email', '$property must be a valid email');
+                decorators.push(IsEmail({}, emailOptions));
+                break;
+            }
+            case 'url': {
+                const urlOptions = createValidationOptions(options, 'url', '$property must be a valid URL');
+                decorators.push(IsUrl({}, urlOptions));
+                break;
+            }
+            case 'uuid': {
+                const uuidOptions = createValidationOptions(options, 'uuid', '$property must be a valid UUID');
+                decorators.push(IsUUID('4', uuidOptions));
+                break;
+            }
+            case 'phone': {
+                const phoneOptions = createValidationOptions(
+                    options,
+                    'phone',
+                    '$property must be a valid phone number',
+                );
+                decorators.push(IsPhoneNumber(undefined, phoneOptions));
+                break;
+            }
+            case 'alphanumeric': {
+                const alphanumericOptions = createValidationOptions(
+                    options,
+                    'format',
+                    '$property must contain only letters and numbers',
+                );
+                decorators.push(IsAlphanumeric(undefined, alphanumericOptions));
+                break;
+            }
+            case 'hexColor': {
+                const hexColorOptions = createValidationOptions(
+                    options,
+                    'format',
+                    '$property must be a valid hex color',
+                );
+                decorators.push(IsHexColor(hexColorOptions));
+                break;
+            }
+            case 'ip': {
+                const ipOptions = createValidationOptions(options, 'format', '$property must be a valid IP address');
+                decorators.push(IsIP(undefined, ipOptions));
+                break;
+            }
+            case 'json': {
+                const jsonOptions = createValidationOptions(options, 'format', '$property must be a valid JSON string');
+                decorators.push(IsJSON(jsonOptions));
+                break;
+            }
+            case 'base64': {
+                const base64ValidationOptions = createValidationOptions(
+                    options,
+                    'format',
+                    '$property must be a valid base64 string',
+                );
+                const base64Options = {
+                    urlSafe: false,
+                    paddingRequired: true,
+                    ...base64ValidationOptions,
+                };
+                decorators.push(IsBase64(base64Options));
+                break;
+            }
+        }
+    }
 
     addSwaggerDecorator(decorators, options as Record<string, unknown>, String, {
         isArray: get(options, 'each', false),
     });
-
-    // Enhanced string transformations
-    if (get(options, 'trim', true)) {
-        decorators.push(Transform(({ value }): string => (isString(value) ? value.trim() : (value as string))));
-    }
-
-    addConditionalDecorator(decorators, options.toLowerCase, ToLowerCase());
-    addConditionalDecorator(decorators, options.toUpperCase, ToUpperCase());
-
-    // Length validation
-    const minLength = get(options, 'minLength', 1);
-    decorators.push(MinLength(minLength, validationOptions));
-
-    addConditionalDecorator(decorators, options.maxLength, MaxLength(options.maxLength!, validationOptions));
-
-    // Pattern validation
-    addConditionalDecorator(
-        decorators,
-        options.pattern,
-        Transform(({ value }): string | undefined => {
-            if (isString(value) && options.pattern) {
-                return options.pattern.test(value) ? value : undefined;
-            }
-            return value;
-        }),
-    );
-
-    // Format-specific validation
-    const format = get(options, 'format');
-    switch (format) {
-        case 'phone': {
-            decorators.push(IsPhoneNumber(undefined, validationOptions));
-            break;
-        }
-        case 'alphanumeric': {
-            decorators.push(IsAlphanumeric(undefined, validationOptions));
-            break;
-        }
-        case 'hexColor': {
-            decorators.push(IsHexColor(validationOptions));
-            break;
-        }
-        case 'ip': {
-            decorators.push(IsIP(undefined, validationOptions));
-            break;
-        }
-        case 'json': {
-            decorators.push(IsJSON(validationOptions));
-            break;
-        }
-        case 'base64': {
-            const base64Options = {
-                urlSafe: false,
-                paddingRequired: true,
-                ...validationOptions,
-            };
-            decorators.push(IsBase64(base64Options));
-            break;
-        }
-    }
 
     return applyDecorators(...decorators);
 };
@@ -704,13 +879,126 @@ export const getVariableName = (variableFunction: () => unknown): string => {
     }
 };
 
+// Custom validator factory functions
+export const createCustomValidator =
+    (
+        validatorName: string,
+        validationFunction: (value: unknown, args?: unknown[]) => boolean,
+        defaultMessage?: string,
+        constraints?: unknown[],
+    ): PropertyDecorator =>
+    (object: object, propertyName: string | symbol) => {
+        registerDecorator({
+            name: validatorName,
+            target: (object as { constructor: new (...args: unknown[]) => unknown }).constructor,
+            propertyName: propertyName as string,
+            constraints: constraints || [],
+            options: { message: defaultMessage || `$property failed ${validatorName} validation` },
+            validator: {
+                validate(value: unknown, args?: ValidationArguments): boolean {
+                    return validationFunction(value, args?.constraints as unknown[]);
+                },
+            },
+        });
+    };
+
+export const createCustomTransform = (
+    transformFunction: (value: unknown) => unknown,
+    options?: ValidationOptions,
+): PropertyDecorator => Transform(({ value }) => transformFunction(value), options);
+
+// Flexible field factory
+export const createFlexibleField =
+    (
+        baseType: () => new (...args: unknown[]) => unknown,
+        defaultValidators: PropertyDecorator[] = [],
+        defaultOptions: Partial<IFieldOptions> = {},
+    ) =>
+    (options: Omit<ApiPropertyOptions, 'type'> & IFieldOptions = {}) => {
+        const mergedOptions = merge(defaultOptions, options);
+        const decorators = [Type(baseType)];
+
+        // Add custom decorators first
+        addCustomDecorators(decorators, mergedOptions);
+
+        // Add default validators if not skipped
+        if (!get(mergedOptions, 'skipDefaultValidation', false)) {
+            decorators.push(...defaultValidators);
+            handleNullableAndRequired(decorators, mergedOptions);
+            addTransformDecorator(decorators, mergedOptions);
+        }
+
+        addSwaggerDecorator(decorators, mergedOptions as Record<string, unknown>, baseType());
+
+        return applyDecorators(...decorators);
+    };
+
+// Message builder utility
+export const buildValidationMessage = (template: string, replacements: Record<string, any> = {}): string =>
+    Object.entries(replacements).reduce(
+        (message, [key, value]) => message.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value)),
+        template,
+    );
+
+// Validation rule builder
+export class ValidationRuleBuilder {
+    private decorators: PropertyDecorator[] = [];
+    private options: IFieldOptions = {};
+
+    static create(): ValidationRuleBuilder {
+        return new ValidationRuleBuilder();
+    }
+
+    addValidator(validator: PropertyDecorator): this {
+        this.decorators.push(validator);
+        return this;
+    }
+
+    addTransform(transform: PropertyDecorator): this {
+        this.decorators.push(transform);
+        return this;
+    }
+
+    setMessage(key: string, message: string): this {
+        if (!this.options.messages) {
+            this.options.messages = {};
+        }
+        this.options.messages[key] = message;
+        return this;
+    }
+
+    setOption<K extends keyof IFieldOptions>(key: K, value: IFieldOptions[K]): this {
+        this.options[key] = value;
+        return this;
+    }
+
+    build(): { decorators: PropertyDecorator[]; options: IFieldOptions } {
+        return {
+            decorators: [...this.decorators],
+            options: { ...this.options },
+        };
+    }
+
+    apply(): PropertyDecorator {
+        const { decorators } = this.build();
+        return applyDecorators(...decorators);
+    }
+}
+
 // Export utility functions for advanced usage
 export const FieldUtils = {
     addConditionalDecorator,
     handleNullableAndRequired,
     addSwaggerDecorator,
     addTransformDecorator,
+    addCustomDecorators,
     getVariableName,
+    createValidationOptions,
+    createCustomValidator,
+    createCustomTransform,
+    createFlexibleField,
+    buildValidationMessage,
+    ValidationRuleBuilder,
 };
 
 // File validation decorator
@@ -885,3 +1173,115 @@ export const CurrencyFieldOptional = (
     const mergedOptions = merge({ required: false }, options);
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), CurrencyField(mergedOptions));
 };
+
+// ==================== USAGE EXAMPLES ====================
+
+/*
+// Example 1: Custom validator with flexible message
+export class UserDto {
+    @StringField({
+        customValidators: [
+            FieldUtils.createCustomValidator(
+                'isStrongPassword',
+                (value: string) => {
+                    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(value);
+                },
+                'Password must contain at least one uppercase letter, one lowercase letter, one number and one special character'
+            )
+        ],
+        messages: {
+            required: 'Mật khẩu là bắt buộc',
+            minLength: 'Mật khẩu phải có ít nhất {minLength} ký tự'
+        },
+        minLength: 8
+    })
+    password: string;
+}
+
+// Example 2: Using ValidationRuleBuilder
+export class ProductDto {
+    @FieldUtils.ValidationRuleBuilder
+        .create()
+        .addValidator(IsString())
+        .addValidator(MinLength(3))
+        .addTransform(Transform(({ value }) => value?.trim()))
+        .setMessage('required', 'Tên sản phẩm không được để trống')
+        .setMessage('minLength', 'Tên sản phẩm phải có ít nhất 3 ký tự')
+        .apply()
+    name: string;
+}
+
+// Example 3: Skip default validation and use only custom ones
+export class CustomDto {
+    @StringField({
+        skipDefaultValidation: true,
+        customValidators: [
+            IsString({ message: 'Phải là chuỗi ký tự' }),
+            MinLength(5, { message: 'Tối thiểu 5 ký tự' })
+        ]
+    })
+    customField: string;
+}
+
+// Example 4: Flexible field factory
+const EmailField = FieldUtils.createFlexibleField(
+    () => String,
+    [IsEmail({ message: 'Email không hợp lệ' })],
+    { toLowerCase: true, trim: true }
+);
+
+export class ContactDto {
+    @EmailField({
+        messages: {
+            required: 'Email là bắt buộc'
+        }
+    })
+    email: string;
+}
+
+// Example 5: Complex validation with multiple custom rules
+export class AdvancedDto {
+    @NumberField({
+        customValidators: [
+            FieldUtils.createCustomValidator(
+                'isEvenNumber',
+                (value: number) => value % 2 === 0,
+                'Số phải là số chẵn'
+            ),
+            FieldUtils.createCustomValidator(
+                'isDivisibleBy',
+                (value: number, constraints: number[]) => {
+                    const divisor = constraints?.[0] || 1;
+                    return value % divisor === 0;
+                },
+                'Số phải chia hết cho {divisor}',
+                [5] // constraints
+            )
+        ],
+        customTransforms: [
+            FieldUtils.createCustomTransform((value: number) => Math.abs(value))
+        ],
+        messages: {
+            required: 'Số là bắt buộc',
+            invalid: 'Phải là một số hợp lệ'
+        }
+    })
+    evenNumber: number;
+}
+
+// Example 6: Conditional validation
+export class ConditionalDto {
+    @BooleanField()
+    hasAddress: boolean;
+
+    @ConditionalField(
+        (obj: ConditionalDto) => obj.hasAddress,
+        StringField({
+            messages: {
+                required: 'Địa chỉ là bắt buộc khi hasAddress = true'
+            }
+        })
+    )
+    address?: string;
+}
+*/
