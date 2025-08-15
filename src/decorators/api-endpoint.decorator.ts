@@ -353,7 +353,7 @@ const createValidationErrorExample = (errorExamples: ValidationErrorExample[]) =
 
     return {
         statusCode: 400,
-        error: 'Bad Request',
+        error: 'Validation failed',
         message: 'Validation failed',
         errors,
         fieldErrors,
@@ -687,12 +687,38 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
                 ApiUnauthorizedResponse({
                     description: 'Unauthorized - Invalid or missing authentication',
                     type: ErrorResponseDto,
+                    examples: {
+                        Unauthorized: {
+                            summary: 'Unauthorized Example',
+                            value: {
+                                statusCode: 401,
+                                error: 'Unauthorized',
+                                message: 'Invalid or missing authentication',
+                                path: '/api/example',
+                                timestamp: '2025-01-15T10:30:00.000Z',
+                                requestId: 'abc123-def456-ghi789',
+                            },
+                        },
+                    },
                 }),
             );
             decorators.push(
                 ApiForbiddenResponse({
                     description: 'Forbidden - Insufficient permissions',
                     type: ErrorResponseDto,
+                    examples: {
+                        Forbidden: {
+                            summary: 'Forbidden Example',
+                            value: {
+                                statusCode: 403,
+                                error: 'Forbidden',
+                                message: 'Insufficient permissions',
+                                path: '/api/example',
+                                timestamp: '2025-01-15T10:30:00.000Z',
+                                requestId: 'abc123-def456-ghi789',
+                            },
+                        },
+                    },
                 }),
             );
         }
