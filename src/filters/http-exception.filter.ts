@@ -247,7 +247,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
             const basePayload: ErrorResponseDto = {
                 statusCode: status,
                 error: 'Validation failed',
-                message: exception.getFirstValidationMessage(),
+                message: 'Validation failed',
                 errors: validationMessages,
                 fieldErrors,
                 path: url,

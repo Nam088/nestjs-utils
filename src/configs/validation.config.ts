@@ -59,7 +59,7 @@ export interface ValidationPipeOptions {
     forbidNonWhitelisted?: boolean;
     forbidUnknownValues?: boolean;
     disableErrorMessages?: boolean;
-    customExceptionFactory?: (errors: ValidationError[]) => unknown;
+    customExceptionFactory?: (errors: ValidationError[]) => any;
 }
 
 /**
@@ -81,8 +81,7 @@ export const getValidationPipeConfig = (options: ValidationPipeOptions = {}): Va
         forbidNonWhitelisted,
         forbidUnknownValues,
         disableErrorMessages,
-        exceptionFactory:
-            (customExceptionFactory as (errors: ValidationError[]) => unknown) || validationExceptionFactory,
+        exceptionFactory: customExceptionFactory || validationExceptionFactory,
         validationError: {
             target: false,
             value: false,

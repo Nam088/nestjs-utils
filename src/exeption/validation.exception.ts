@@ -42,12 +42,4 @@ export class ValidationException extends BadRequestException {
     getValidationErrorsByProperty(): Record<string, Record<string, string>> {
         return this.getFieldErrors();
     }
-
-    /**
-     * Get first validation error message
-     */
-    getFirstValidationMessage(): string {
-        const messages = this.getValidationMessages();
-        return messages[0] || 'Validation failed';
-    }
 }
