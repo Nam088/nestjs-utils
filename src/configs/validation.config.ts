@@ -54,7 +54,6 @@ export const productionValidationPipeConfig = new ValidationPipe({
  * Validation pipe options interface
  */
 export interface ValidationPipeOptions {
-    isDevelopment?: boolean;
     transform?: boolean;
     whitelist?: boolean;
     forbidNonWhitelisted?: boolean;
@@ -66,9 +65,8 @@ export interface ValidationPipeOptions {
 /**
  * Setup validation pipe based on environment with custom options
  */
-export const getValidationPipeConfig = (options: ValidationPipeOptions = {}) => {
+export const getValidationPipeConfig = (options: ValidationPipeOptions = {}): ValidationPipe => {
     const {
-        isDevelopment = process.env.NODE_ENV === 'development',
         transform = true,
         whitelist = true,
         forbidNonWhitelisted = true,
@@ -77,8 +75,7 @@ export const getValidationPipeConfig = (options: ValidationPipeOptions = {}) => 
         customExceptionFactory,
     } = options;
 
-    const baseConfig = {
-        isDevelopment,
+    const baseConfig: ConstructorParameters<typeof ValidationPipe>[0] = {
         transform,
         whitelist,
         forbidNonWhitelisted,

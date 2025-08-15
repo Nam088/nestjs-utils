@@ -134,6 +134,15 @@ interface ResponseConfig<T> {
 }
 
 /**
+ * Validation error example configuration
+ */
+interface ValidationErrorExample {
+    field: string;
+    constraint: string;
+    message: string;
+}
+
+/**
  * Enhanced options for configuring the ApiEndpoint decorator
  */
 interface ApiEndpointOptions<T> {
@@ -187,6 +196,8 @@ interface ApiEndpointOptions<T> {
     // Validation
     validation?: {
         groups?: string[];
+        errorExamples?: ValidationErrorExample[];
+        includeValidationErrors?: boolean; // Auto-include 400 with validation error format
     };
 }
 
@@ -259,6 +270,33 @@ const createCommonErrorDecorators = (): MethodDecorator[] => [
         type: ErrorResponseDto,
     }),
 ];
+
+/**
+ * Create validation error response example
+ */
+const createValidationErrorExample = (errorExamples: ValidationErrorExample[]) => {
+    const fieldErrors: Record<string, Record<string, string>> = {};
+    const errors: string[] = [];
+
+    errorExamples.forEach(({ field, constraint, message }) => {
+        if (!fieldErrors[field]) {
+            fieldErrors[field] = {};
+        }
+        fieldErrors[field][constraint] = message;
+        errors.push(message);
+    });
+
+    return {
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'Validation failed',
+        errors,
+        fieldErrors,
+        path: '/api/example',
+        timestamp: '2025-01-15T10:30:00.000Z',
+        requestId: 'abc123-def456-ghi789',
+    };
+};
 
 /**
  * Create custom error decorators
@@ -356,7 +394,14 @@ const getPaginatedType = <T>(pagination: PaginationType | undefined, type: Type<
  *     HttpStatus.CONFLICT,
  *     { status: HttpStatus.UNPROCESSABLE_ENTITY, description: 'Invalid email format' }
  *   ],
- *   includeCommonErrors: true
+ *   includeCommonErrors: true,
+ *   validation: {
+ *     includeValidationErrors: true,
+ *     errorExamples: [
+ *       { field: 'email', constraint: 'isEmail', message: 'email must be an email' },
+ *       { field: 'password', constraint: 'minLength', message: 'password must be longer than or equal to 8 characters' }
+ *     ]
+ *   }
  * })
  *
  * // Multiple auth types
@@ -374,6 +419,19 @@ const getPaginatedType = <T>(pagination: PaginationType | undefined, type: Type<
  *   summary: 'OAuth2 endpoint',
  *   response: UserDto,
  *   auth: { type: AUTH_TYPE.OAUTH2, scopes: ['user:read', 'user:write'] }
+ * })
+ *
+ * // Using shorthand for validation
+ * @ApiValidationEndpoint({
+ *   summary: 'Create user with validation docs',
+ *   response: UserDto,
+ *   body: { type: CreateUserDto },
+ *   validation: {
+ *     errorExamples: [
+ *       { field: 'name', constraint: 'isNotEmpty', message: 'name should not be empty' },
+ *       { field: 'email', constraint: 'isEmail', message: 'email must be an email' }
+ *     ]
+ *   }
  * })
  * ```
  */
@@ -555,7 +613,34 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
         decorators.push(...customErrorDecorators);
     }
 
-    // 12. Apply Rate Limit and Cache Metadata
+    // 12. Apply Validation Error Documentation
+    if (validation?.includeValidationErrors || validation?.errorExamples) {
+        const validationErrorExamples: ValidationErrorExample[] = validation.errorExamples || [
+            { field: 'email', constraint: 'isEmail', message: 'email must be an email' },
+            {
+                field: 'password',
+                constraint: 'minLength',
+                message: 'password must be longer than or equal to 8 characters',
+            },
+        ];
+
+        const validationErrorExample = createValidationErrorExample(validationErrorExamples);
+
+        decorators.push(
+            ApiBadRequestResponse({
+                description: 'Validation Error - Invalid input data',
+                type: ErrorResponseDto,
+                examples: {
+                    'Validation Error': {
+                        summary: 'Validation Error Example',
+                        value: validationErrorExample,
+                    },
+                },
+            }),
+        );
+    }
+
+    // 13. Apply Rate Limit and Cache Metadata
     if (rateLimit) {
         decorators.push(SetMetadata('rateLimit', rateLimit));
         // Auto-add 429 if not present
@@ -577,7 +662,7 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
         decorators.push(SetMetadata('cacheTtl', cache.ttl));
     }
 
-    // 13. Apply Validation Metadata
+    // 14. Apply Validation Metadata
     if (validation?.groups) {
         decorators.push(SetMetadata('validationGroups', validation.groups));
     }
@@ -661,3 +746,22 @@ export const ApiAuthEndpoint = <T>(
         auth: AuthConfig | AuthConfig[];
     },
 ) => ApiEndpoint({ ...options, includeCommonErrors: true });
+
+/**
+ * Shorthand for endpoints with validation error documentation
+ */
+export const ApiValidationEndpoint = <T>(
+    options: Omit<ApiEndpointOptions<T>, 'validation'> & {
+        validation?: {
+            groups?: string[];
+            errorExamples?: ValidationErrorExample[];
+        };
+    },
+) =>
+    ApiEndpoint({
+        ...options,
+        validation: {
+            ...options.validation,
+            includeValidationErrors: true,
+        },
+    });

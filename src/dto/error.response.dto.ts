@@ -30,14 +30,18 @@ export class ErrorResponseDto {
     errors?: string[];
 
     @ApiProperty({
-        description: 'Validation errors grouped by field name, present when validation fails.',
+        description: 'Validation errors with original constraints format.',
         example: {
-            email: ['Email is required', 'Email must be valid'],
-            password: ['Password must be at least 8 characters'],
+            name: {
+                isNotEmpty: 'name should not be empty',
+            },
+            email: {
+                isEmail: 'email must be an email',
+            },
         },
         required: false,
     })
-    fieldErrors?: Record<string, string[]>;
+    fieldErrors?: Record<string, Record<string, string>>;
 
     @ApiProperty({
         description: 'The path of the request that resulted in an error.',

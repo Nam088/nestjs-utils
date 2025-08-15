@@ -5,8 +5,8 @@ import type { Request, Response } from 'express';
 import { get, isArray, isObject, isString, size } from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
 
+import { ValidationException } from './validation.exception';
 import { ErrorResponseDto } from '../dto/error.response.dto';
-import { ValidationException } from '../exeption';
 
 export interface HttpExceptionFilterOptions {
     isDevelopment: boolean;
@@ -242,7 +242,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         if (exception instanceof ValidationException) {
             const { url } = request;
             const validationMessages = exception.getValidationMessages();
-            const fieldErrors = exception.getFieldErrors();
+            const fieldErrors: Record<string, Record<string, string>> = exception.getFieldErrors();
 
             const basePayload: ErrorResponseDto = {
                 statusCode: status,
@@ -263,9 +263,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
                 }
                 if (basePayload.fieldErrors) {
                     Object.keys(basePayload.fieldErrors).forEach((property) => {
-                        basePayload.fieldErrors![property] = basePayload.fieldErrors![property].map((error) =>
-                            this.sanitizeString(error),
-                        );
+                        const fieldErrors = basePayload.fieldErrors![property];
+                        Object.keys(fieldErrors).forEach((constraint) => {
+                            fieldErrors[constraint] = this.sanitizeString(fieldErrors[constraint]);
+                        });
                     });
                 }
             }

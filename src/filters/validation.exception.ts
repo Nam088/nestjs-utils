@@ -22,14 +22,14 @@ export class ValidationException extends BadRequestException {
     }
 
     /**
-     * Get validation errors grouped by field name
+     * Get validation errors with original constraints format
      */
-    getFieldErrors(): Record<string, string[]> {
-        const result: Record<string, string[]> = {};
+    getFieldErrors(): Record<string, Record<string, string>> {
+        const result: Record<string, Record<string, string>> = {};
 
         this.validationErrors.forEach((error) => {
             if (error.constraints) {
-                result[error.property] = Object.values(error.constraints);
+                result[error.property] = { ...error.constraints };
             }
         });
 
@@ -39,7 +39,7 @@ export class ValidationException extends BadRequestException {
     /**
      * @deprecated Use getFieldErrors() instead
      */
-    getValidationErrorsByProperty(): Record<string, string[]> {
+    getValidationErrorsByProperty(): Record<string, Record<string, string>> {
         return this.getFieldErrors();
     }
 

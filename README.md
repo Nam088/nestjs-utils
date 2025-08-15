@@ -20,6 +20,7 @@
 
 - 🎯 **Type-Safe Validation Decorators** - Comprehensive field validation with automatic Swagger integration
 - 📚 **API Documentation** - Streamlined Swagger documentation with `@ApiEndpoint` decorators
+- 🔍 **Validation Error Documentation** - Auto-generate validation error examples in Swagger
 - 🏗️ **Standardized DTOs** - Consistent API response and error handling structures
 - 🔐 **Authentication Support** - Predefined auth types and configurations
 - 📄 **Pagination Utilities** - Offset and cursor-based pagination support
@@ -103,19 +104,25 @@ export class CreateUserDto {
 
 ```typescript
 import { Controller, Post, Body } from '@nestjs/common';
-import { ApiPostEndpoint, AUTH_TYPE, HttpStatus } from '@ecom-co/utils';
+import { ApiValidationEndpoint, AUTH_TYPE, HttpStatus } from '@ecom-co/utils';
 import { CreateUserDto, UserDto } from './dto';
 
 @Controller('users')
 export class UserController {
-  @ApiPostEndpoint({
+  @ApiValidationEndpoint({
     summary: 'Create a new user',
     description: 'Creates a new user account with the provided information',
     tags: ['Users'],
     response: UserDto,
     auth: { type: AUTH_TYPE.JWT, required: true },
     body: { type: CreateUserDto },
-    errors: [HttpStatus.CONFLICT, HttpStatus.BAD_REQUEST]
+    errors: [HttpStatus.CONFLICT],
+    validation: {
+      errorExamples: [
+        { field: 'name', constraint: 'isNotEmpty', message: 'name should not be empty' },
+        { field: 'email', constraint: 'isEmail', message: 'email must be an email' }
+      ]
+    }
   })
   @Post()
   async createUser(@Body() createUserDto: CreateUserDto) {
@@ -329,6 +336,21 @@ async updateProduct(@Param('id') id: string, @Body() dto: UpdateProductDto) {}
 })
 @Delete(':id')
 async deleteProduct(@Param('id') id: string) {}
+
+// Validation endpoint with error documentation
+@ApiValidationEndpoint({
+  summary: 'Create user with validation',
+  response: UserDto,
+  body: { type: CreateUserDto },
+  validation: {
+    errorExamples: [
+      { field: 'email', constraint: 'isEmail', message: 'email must be an email' },
+      { field: 'password', constraint: 'minLength', message: 'password must be longer than or equal to 8 characters' }
+    ]
+  }
+})
+@Post()
+async createUser(@Body() dto: CreateUserDto) {}
 ```
 
 #### Advanced Configuration
@@ -365,12 +387,48 @@ async deleteProduct(@Param('id') id: string) {}
     ttl: 300,
     description: 'Cache results for 5 minutes'
   },
-  includeCommonErrors: true
+  includeCommonErrors: true,
+  validation: {
+    includeValidationErrors: true,
+    errorExamples: [
+      { field: 'search', constraint: 'isNotEmpty', message: 'search should not be empty' },
+      { field: 'minPrice', constraint: 'isPositive', message: 'minPrice must be a positive number' }
+    ]
+  }
 })
 @Get('search')
 async searchProducts() {
   // Implementation
 }
+```
+
+#### Validation Error Documentation
+
+```typescript
+// With custom validation error examples
+@ApiValidationEndpoint({
+  summary: 'Create user with validation docs',
+  response: UserDto,
+  body: { type: CreateUserDto },
+  validation: {
+    errorExamples: [
+      { field: 'name', constraint: 'isNotEmpty', message: 'name should not be empty' },
+      { field: 'email', constraint: 'isEmail', message: 'email must be an email' },
+      { field: 'password', constraint: 'minLength', message: 'password must be longer than or equal to 8 characters' }
+    ]
+  }
+})
+@Post()
+async createUser(@Body() dto: CreateUserDto) {}
+
+// Simple validation documentation
+@ApiValidationEndpoint({
+  summary: 'Create product',
+  response: ProductDto,
+  body: { type: CreateProductDto }
+})
+@Post()
+async createProduct(@Body() dto: CreateProductDto) {}
 ```
 
 ### 📋 DTOs
@@ -546,17 +604,18 @@ if (!user.email || !user.password) {
 {
   "statusCode": 400,
   "error": "Bad Request",
-  "message": "Email is required",
+  "message": "Validation failed",
   "errors": [
-    "Email is required",
-    "Password must be at least 8 characters"
+    "name should not be empty",
+    "email must be an email"
   ],
   "fieldErrors": {
-    "email": ["Email is required"],
-    "password": [
-      "Password is required", 
-      "Password must be at least 8 characters"
-    ]
+    "name": {
+      "isNotEmpty": "name should not be empty"
+    },
+    "email": {
+      "isEmail": "email must be an email"
+    }
   },
   "path": "/api/users",
   "timestamp": "2025-01-15T10:30:00.000Z",
@@ -581,7 +640,7 @@ import {
 } from '@nestjs/common';
 import { 
   ApiGetEndpoint, 
-  ApiPostEndpoint, 
+  ApiValidationEndpoint, 
   ApiPutEndpoint, 
   ApiDeleteEndpoint,
   AUTH_TYPE,
@@ -626,21 +685,28 @@ export class ProductController {
     return this.productService.findById(id);
   }
 
-  @ApiPostEndpoint({
+  @ApiValidationEndpoint({
     summary: 'Create new product',
     description: 'Create a new product with the provided data',
     tags: ['Products'],
     response: ProductDto,
     body: { type: CreateProductDto, description: 'Product creation data' },
     auth: { type: AUTH_TYPE.JWT, required: true },
-    errors: [HttpStatus.CONFLICT, HttpStatus.BAD_REQUEST]
+    errors: [HttpStatus.CONFLICT],
+    validation: {
+      errorExamples: [
+        { field: 'name', constraint: 'isNotEmpty', message: 'name should not be empty' },
+        { field: 'price', constraint: 'isPositive', message: 'price must be a positive number' },
+        { field: 'stock', constraint: 'min', message: 'stock must not be less than 0' }
+      ]
+    }
   })
   @Post()
   async createProduct(@Body() createProductDto: CreateProductDto) {
     return this.productService.create(createProductDto);
   }
 
-  @ApiPutEndpoint({
+  @ApiValidationEndpoint({
     summary: 'Update product',
     description: 'Update an existing product',
     tags: ['Products'],
@@ -648,7 +714,13 @@ export class ProductController {
     body: { type: UpdateProductDto },
     params: [{ name: 'id', type: 'uuid' }],
     auth: { type: AUTH_TYPE.JWT, required: true },
-    errors: [HttpStatus.NOT_FOUND, HttpStatus.BAD_REQUEST]
+    errors: [HttpStatus.NOT_FOUND],
+    validation: {
+      errorExamples: [
+        { field: 'name', constraint: 'minLength', message: 'name must be longer than or equal to 3 characters' },
+        { field: 'price', constraint: 'isPositive', message: 'price must be a positive number' }
+      ]
+    }
   })
   @Put(':id')
   async updateProduct(
@@ -963,13 +1035,21 @@ export class OrderDto {
 ### Validation Configuration
 
 ```typescript
-import { validationPipeConfig } from '@ecom-co/utils';
+import { validationPipeConfig, getValidationPipeConfig } from '@ecom-co/utils';
 
 // In your main.ts
 const app = await NestFactory.create(AppModule);
 
 // Setup global validation pipe with custom exception factory
 app.useGlobalPipes(validationPipeConfig);
+
+// Or with custom options
+app.useGlobalPipes(getValidationPipeConfig({
+  transform: true,
+  whitelist: true,
+  forbidNonWhitelisted: true,
+  disableErrorMessages: false,
+}));
 
 // Or custom configuration
 app.useGlobalPipes(
