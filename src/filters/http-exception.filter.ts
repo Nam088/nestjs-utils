@@ -24,7 +24,7 @@ export interface RateLimitTracker {
 }
 
 interface SanitizedError {
-    message: string;
+    message: string | string[];
     stack?: string;
 }
 
@@ -264,7 +264,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         // Sanitize error messages in production
         if (!this.isDevelopment && this.enableSanitization) {
             const sanitized = this.sanitizeError({
-                message: basePayload.message as string,
+                message: basePayload.message,
                 stack: basePayload.stack,
             });
             basePayload.message = sanitized.message;
@@ -277,8 +277,24 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     private sanitizeError(error: SanitizedError): SanitizedError {
-        let sanitizedMessage = error.message || '';
-        let sanitizedStack = error.stack || '';
+        let sanitizedMessage: string;
+        let sanitizedStack: string;
+
+        // Ensure message is a string before sanitizing
+        if (Array.isArray(error.message)) {
+            sanitizedMessage = error.message.join(', ');
+        } else if (isString(error.message)) {
+            sanitizedMessage = error.message;
+        } else {
+            sanitizedMessage = String(error.message || '');
+        }
+
+        // Ensure stack is a string before sanitizing
+        if (isString(error.stack)) {
+            sanitizedStack = error.stack;
+        } else {
+            sanitizedStack = String(error.stack || '');
+        }
 
         this.sensitivePatterns.forEach((pattern) => {
             sanitizedMessage = sanitizedMessage.replace(pattern, '[REDACTED]');
