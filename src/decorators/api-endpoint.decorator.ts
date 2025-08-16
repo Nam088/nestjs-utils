@@ -8,6 +8,7 @@ import {
     ApiBasicAuth,
     ApiCookieAuth,
     ApiOAuth2,
+    ApiSecurity,
     ApiTags,
     ApiBody,
     ApiQuery,
@@ -49,6 +50,7 @@ interface ApiKeyAuthConfig {
 interface OAuth2AuthConfig {
     type: typeof AUTH_TYPE.OAUTH2;
     scopes?: string[];
+    provider?: string; // Name of the OAuth2 provider
     required?: boolean;
 }
 
@@ -217,13 +219,13 @@ const createAuthDecorators = (authConfig: AuthConfig | AuthConfig[]): MethodDeco
                 break;
             }
             case AUTH_TYPE.API_KEY: {
-                const apiKeyName = config.name || 'X-API-Key';
-                decorators.push(ApiBearerAuth(apiKeyName));
+                decorators.push(ApiSecurity(config.name || 'api-key'));
                 break;
             }
             case AUTH_TYPE.OAUTH2: {
                 const scopes = config.scopes || ['read', 'write'];
-                decorators.push(ApiOAuth2(scopes));
+                const providerName = config.provider || 'oauth2';
+                decorators.push(ApiOAuth2(scopes, providerName));
                 break;
             }
             case AUTH_TYPE.BASIC: {

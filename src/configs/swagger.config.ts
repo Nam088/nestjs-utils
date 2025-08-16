@@ -7,10 +7,24 @@ export interface SwaggerConfigOptions {
     description: string;
     version: string;
     nodeEnv: string;
+    oauth2?: {
+        providers?: Array<{
+            name: string;
+            authorizationUrl: string;
+            tokenUrl: string;
+            scopes: Record<string, string>;
+            description?: string;
+        }>;
+        // Fallback for single provider (backward compatibility)
+        authorizationUrl?: string;
+        tokenUrl?: string;
+        scopes?: Record<string, string>;
+        description?: string;
+    };
 }
 
 export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions) => {
-    const { port, title, description, version, nodeEnv } = options;
+    const { port, title, description, version, nodeEnv, oauth2 } = options;
 
     const documentBuilder = new DocumentBuilder()
         .setTitle(title)
@@ -18,6 +32,7 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
         .setVersion(version)
         .setContact('Ecom Backend', 'https://example.com', 'admin@ecom.com')
         .setLicense('UNLICENSED', 'https://choosealicense.com/licenses/unlicense/')
+        // JWT Bearer Authentication
         .addBearerAuth(
             {
                 type: 'http',
@@ -27,12 +42,86 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
             },
             'bearer',
         )
+        // API Key Authentication
+        .addApiKey(
+            {
+                type: 'apiKey',
+                in: 'header',
+                name: 'api-key',
+                description: 'API Key for authentication',
+            },
+            'api-key',
+        );
+
+    // Add OAuth2 providers
+    if (oauth2?.providers) {
+        oauth2.providers.forEach(provider => {
+            documentBuilder.addOAuth2(
+                {
+                    type: 'oauth2',
+                    flows: {
+                        authorizationCode: {
+                            authorizationUrl: provider.authorizationUrl,
+                            tokenUrl: provider.tokenUrl,
+                            scopes: provider.scopes,
+                        },
+                        clientCredentials: {
+                            tokenUrl: provider.tokenUrl,
+                            scopes: provider.scopes,
+                        },
+                    },
+                    description: provider.description || `OAuth2 authentication for ${provider.name}`,
+                },
+                provider.name,
+            );
+        });
+    } else {
+        // Fallback to single provider (backward compatibility)
+        documentBuilder.addOAuth2(
+            {
+                type: 'oauth2',
+                flows: {
+                    authorizationCode: {
+                        authorizationUrl: oauth2?.authorizationUrl || 'https://example.com/oauth/authorize',
+                        tokenUrl: oauth2?.tokenUrl || 'https://example.com/oauth/token',
+                        scopes: oauth2?.scopes || {
+                            read: 'Read access',
+                            write: 'Write access',
+                            'user:read': 'Read user data',
+                            'user:write': 'Write user data',
+                        },
+                    },
+                    clientCredentials: {
+                        tokenUrl: oauth2?.tokenUrl || 'https://example.com/oauth/token',
+                        scopes: oauth2?.scopes || {
+                            read: 'Read access',
+                            write: 'Write access',
+                        },
+                    },
+                },
+                description: oauth2?.description || 'OAuth2 authentication with various scopes',
+            },
+            'oauth2',
+        );
+    }
+
+    documentBuilder
+        // Cookie Authentication
         .addCookieAuth('refresh_token', {
             type: 'apiKey',
             in: 'cookie',
             name: 'refresh_token',
             description: 'Refresh token stored in httpOnly cookie',
         })
+        // Basic Authentication
+        .addBasicAuth(
+            {
+                type: 'http',
+                scheme: 'basic',
+                description: 'Basic authentication with username and password',
+            },
+            'basic',
+        )
         .addSecurityRequirements('bearer')
         .addServer(`http://localhost:${port}`, 'Local')
         .addTag('example', 'Example endpoints')
