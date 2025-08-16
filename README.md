@@ -508,15 +508,28 @@ import { ApiResponseDto, ApiResponseData } from '@ecom-co/utils';
 // Create response DTO for User
 const UserResponseDto = ApiResponseDto(UserDto);
 
-// Usage in controller
+// Usage in controller with object constructor (Recommended)
 @ApiGetEndpoint({
   response: UserResponseDto
 })
 @Get(':id')
 async getUser(@Param('id') id: string) {
   const user = await this.userService.findById(id);
-  return new ApiResponseData(user, 'User retrieved successfully');
+  
+  // Using object constructor
+  return new ApiResponseData({
+    data: user,
+    message: 'User retrieved successfully',
+    statusCode: 200
+  });
 }
+
+// Alternative: Using static factory method (Backward compatibility)
+return ApiResponseData.create(
+  userDto, 
+  'User retrieved successfully', 
+  200
+);
 ```
 
 #### Error Response DTO
@@ -544,7 +557,11 @@ import { ErrorResponseDto } from '@ecom-co/utils';
 ```typescript
 import { 
   ApiPaginatedResponseDto, 
-  ApiCursorPaginatedResponseDto 
+  ApiCursorPaginatedResponseDto,
+  ApiPaginatedResponseData,
+  ApiCursorPaginatedResponseData,
+  Paging,
+  CursorPaging
 } from '@ecom-co/utils';
 
 // Offset pagination
@@ -552,6 +569,172 @@ const UserPaginatedResponseDto = ApiPaginatedResponseDto(UserDto);
 
 // Cursor pagination
 const UserCursorPaginatedResponseDto = ApiCursorPaginatedResponseDto(UserDto);
+
+// Usage in controller - Offset Pagination
+@ApiEndpoint({
+  response: UserPaginatedResponseDto,
+  pagination: PAGINATION_TYPE.OFFSET
+})
+@Get()
+async getUsers(@Query('page') page = 1, @Query('limit') limit = 10) {
+  const result = await this.userService.findWithPagination({ page, limit });
+  
+  // Method 1: Using object constructor (Recommended)
+  const paging = new Paging({
+    page: result.page,
+    limit: result.limit,
+    total: result.total,
+    currentPageSize: result.data.length
+    // Other fields will be auto-calculated
+  });
+
+  return new ApiPaginatedResponseData({
+    data: result.data,
+    paging,
+    message: 'Users retrieved successfully'
+  });
+
+  // Method 2: Using helper method (Easiest)
+  return ApiPaginatedResponseData.createWithAutoPaging({
+    data: result.data,
+    total: result.total,
+    page: result.page,
+    limit: result.limit,
+    message: 'Users retrieved successfully'
+  });
+
+  // Method 3: Using Paging helper method
+  const paging2 = Paging.createWithAutoCalculation({
+    page: result.page,
+    limit: result.limit,
+    total: result.total,
+    currentPageSize: result.data.length
+  });
+
+  return new ApiPaginatedResponseData({
+    data: result.data,
+    paging: paging2,
+    message: 'Users retrieved successfully'
+  });
+}
+
+// Usage in controller - Cursor Pagination
+@ApiEndpoint({
+  response: UserCursorPaginatedResponseDto,
+  pagination: PAGINATION_TYPE.CURSOR
+})
+@Get()
+async getProducts(@Query('cursor') cursor?: string, @Query('limit') limit = 20) {
+  const result = await this.productService.findWithCursorPagination({ cursor, limit });
+  
+  // Method 1: Using object constructor (Recommended)
+  const cursorPaging = new CursorPaging({
+    nextCursor: result.nextCursor,
+    hasNextPage: result.hasNextPage,
+    previousCursor: result.previousCursor,
+    firstCursor: result.firstCursor,
+    lastCursor: result.lastCursor,
+    currentPageSize: result.data.length,
+    total: result.total,
+    currentPage: result.currentPage
+    // Other fields will be auto-calculated
+  });
+
+  return new ApiCursorPaginatedResponseData({
+    data: result.data,
+    cursorPaging,
+    message: 'Products retrieved successfully'
+  });
+
+  // Method 2: Using helper method (Easiest)
+  return ApiCursorPaginatedResponseData.createWithAutoCursors({
+    data: result.data,
+    limit,
+    nextCursor: result.nextCursor,
+    previousCursor: result.previousCursor,
+    firstCursor: result.firstCursor,
+    lastCursor: result.lastCursor,
+    total: result.total,
+    currentPage: result.currentPage,
+    message: 'Products retrieved successfully'
+  });
+
+  // Method 3: Using CursorPaging helper method
+  const cursorPaging2 = CursorPaging.createWithAutoCalculation({
+    data: result.data as any[],
+    limit,
+    nextCursor: result.nextCursor,
+    previousCursor: result.previousCursor,
+    firstCursor: result.firstCursor,
+    lastCursor: result.lastCursor,
+    total: result.total,
+    currentPage: result.currentPage
+  });
+
+  return new ApiCursorPaginatedResponseData({
+    data: result.data,
+    cursorPaging: cursorPaging2,
+    message: 'Products retrieved successfully'
+  });
+}
+```
+
+#### Pagination Constructor Examples
+
+```typescript
+// Paging Object Constructor Examples
+const paging = new Paging({
+  page: 1,
+  limit: 10,
+  total: 100
+  // Other fields auto-calculated
+});
+
+const paging2 = new Paging({
+  page: 2,
+  limit: 20,
+  total: 500,
+  currentPageSize: 20,
+  hasPreviousPage: true,
+  hasNextPage: true
+});
+
+// Using Paging helper method
+const paging3 = Paging.createWithAutoCalculation({
+  page: 3,
+  limit: 15,
+  total: 300,
+  currentPageSize: 15
+});
+
+// CursorPaging Object Constructor Examples
+const cursorPaging = new CursorPaging({
+  nextCursor: 'abc123',
+  hasNextPage: true
+});
+
+const cursorPaging2 = new CursorPaging({
+  nextCursor: 'def456',
+  hasNextPage: true,
+  previousCursor: 'abc123',
+  firstCursor: 'first123',
+  lastCursor: 'last789',
+  currentPageSize: 20,
+  total: 1000,
+  currentPage: 2
+});
+
+// Using CursorPaging helper method
+const cursorPaging3 = CursorPaging.createWithAutoCalculation({
+  data: dataArray,
+  limit,
+  nextCursor,
+  previousCursor,
+  firstCursor,
+  lastCursor,
+  total,
+  currentPage
+});
 ```
 
 ### 🔐 Multi-Provider Authentication

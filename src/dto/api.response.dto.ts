@@ -48,6 +48,16 @@ export const ApiResponseDto = <T>(dataType: Type<T> | null): Type<IApiResponse<T
 };
 
 /**
+ * Interface for ApiResponseData constructor options
+ * @template T The type of the data payload.
+ */
+export interface ApiResponseDataOptions<T> {
+    data: T;
+    message?: string;
+    statusCode?: number;
+}
+
+/**
  * A concrete implementation class for creating standardized API responses within services.
  * @template T The type of the data payload.
  */
@@ -56,9 +66,17 @@ export class ApiResponseData<T> implements IApiResponse<T> {
     message: string;
     data: T;
 
-    constructor(data: T, message = 'Success', statusCode = 200) {
-        this.statusCode = statusCode;
-        this.message = message;
-        this.data = data;
+    constructor(options: ApiResponseDataOptions<T>) {
+        this.statusCode = options.statusCode ?? 200;
+        this.message = options.message ?? 'Success';
+        this.data = options.data;
+    }
+
+    /**
+     * Static factory method for backward compatibility
+     * @deprecated Use constructor with object parameter instead
+     */
+    static create<T>(data: T, message = 'Success', statusCode = 200): ApiResponseData<T> {
+        return new ApiResponseData({ data, message, statusCode });
     }
 }
