@@ -7,6 +7,20 @@ export interface SwaggerConfigOptions {
     description: string;
     version: string;
     nodeEnv: string;
+    servers?: Array<{
+        url: string;
+        description?: string;
+    }>;
+    jwt?: {
+        providers?: Array<{
+            name: string;
+            bearerFormat?: string;
+            description?: string;
+        }>;
+        // Fallback for single provider (backward compatibility)
+        bearerFormat?: string;
+        description?: string;
+    };
     oauth2?: {
         providers?: Array<{
             name: string;
@@ -21,10 +35,22 @@ export interface SwaggerConfigOptions {
         scopes?: Record<string, string>;
         description?: string;
     };
+    apiKey?: {
+        providers?: Array<{
+            name: string;
+            in: 'header' | 'query' | 'cookie';
+            keyName: string;
+            description?: string;
+        }>;
+        // Fallback for single provider (backward compatibility)
+        in?: 'header' | 'query' | 'cookie';
+        keyName?: string;
+        description?: string;
+    };
 }
 
 export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions) => {
-    const { port, title, description, version, nodeEnv, oauth2 } = options;
+    const { port, title, description, version, nodeEnv, servers, jwt, oauth2, apiKey } = options;
 
     const documentBuilder = new DocumentBuilder()
         .setTitle(title)
@@ -37,8 +63,8 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
             {
                 type: 'http',
                 scheme: 'bearer',
-                bearerFormat: 'JWT',
-                description: 'JWT access token',
+                bearerFormat: jwt?.bearerFormat || 'JWT',
+                description: jwt?.description || 'JWT access token',
             },
             'bearer',
         )
@@ -46,16 +72,46 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
         .addApiKey(
             {
                 type: 'apiKey',
-                in: 'header',
-                name: 'api-key',
-                description: 'API Key for authentication',
+                in: apiKey?.in || 'header',
+                name: apiKey?.keyName || 'api-key',
+                description: apiKey?.description || 'API Key for authentication',
             },
             'api-key',
         );
 
+    // Add multiple JWT providers
+    if (jwt?.providers) {
+        jwt.providers.forEach((provider) => {
+            documentBuilder.addBearerAuth(
+                {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: provider.bearerFormat || 'JWT',
+                    description: provider.description || `JWT authentication for ${provider.name}`,
+                },
+                provider.name,
+            );
+        });
+    }
+
+    // Add multiple API Key providers
+    if (apiKey?.providers) {
+        apiKey.providers.forEach((provider) => {
+            documentBuilder.addApiKey(
+                {
+                    type: 'apiKey',
+                    in: provider.in,
+                    name: provider.keyName,
+                    description: provider.description || `API Key authentication for ${provider.name}`,
+                },
+                provider.name,
+            );
+        });
+    }
+
     // Add OAuth2 providers
     if (oauth2?.providers) {
-        oauth2.providers.forEach(provider => {
+        oauth2.providers.forEach((provider) => {
             documentBuilder.addOAuth2(
                 {
                     type: 'oauth2',
@@ -122,10 +178,19 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
             },
             'basic',
         )
-        .addSecurityRequirements('bearer')
-        .addServer(`http://localhost:${port}`, 'Local')
-        .addTag('example', 'Example endpoints')
-        .addTag('example-2', 'Second example module');
+        .addSecurityRequirements('bearer');
+
+    // Add multiple servers/hosts
+    if (servers && servers.length > 0) {
+        servers.forEach((server) => {
+            documentBuilder.addServer(server.url, server.description);
+        });
+    } else {
+        // Fallback to local server
+        documentBuilder.addServer(`http://localhost:${port}`, 'Local');
+    }
+
+    documentBuilder.addTag('example', 'Example endpoints').addTag('example-2', 'Second example module');
 
     const openApiConfig = documentBuilder.build();
 

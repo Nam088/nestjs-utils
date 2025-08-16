@@ -38,12 +38,13 @@ import { ApiPaginatedResponseDto, ApiCursorPaginatedResponseDto } from '../dto/p
  */
 interface JwtAuthConfig {
     type: typeof AUTH_TYPE.JWT;
+    provider?: string; // Name of the JWT provider
     required?: boolean;
 }
 
 interface ApiKeyAuthConfig {
     type: typeof AUTH_TYPE.API_KEY;
-    name?: string;
+    provider?: string; // Name of the API Key provider
     required?: boolean;
 }
 
@@ -206,6 +207,19 @@ interface ApiEndpointOptions<T> {
 // --- Enhanced mapping for Swagger decorators ---
 
 /**
+ * Create API Key decorator
+ */
+const createApiKeyDecorator = (config: ApiKeyAuthConfig): MethodDecorator[] => {
+    const decorators: MethodDecorator[] = [];
+    const providerName = config.provider || 'api-key';
+
+    // Add API Security decorator
+    decorators.push(ApiSecurity(providerName));
+
+    return decorators;
+};
+
+/**
  * Create authentication decorators based on auth configuration
  */
 const createAuthDecorators = (authConfig: AuthConfig | AuthConfig[]): MethodDecorator[] => {
@@ -215,11 +229,13 @@ const createAuthDecorators = (authConfig: AuthConfig | AuthConfig[]): MethodDeco
     authConfigs.forEach((config) => {
         switch (config.type) {
             case AUTH_TYPE.JWT: {
-                decorators.push(ApiBearerAuth());
+                const providerName = config.provider || 'bearer';
+                decorators.push(ApiBearerAuth(providerName));
                 break;
             }
             case AUTH_TYPE.API_KEY: {
-                decorators.push(ApiSecurity(config.name || 'api-key'));
+                const apiKeyDecorators = createApiKeyDecorator(config);
+                decorators.push(...apiKeyDecorators);
                 break;
             }
             case AUTH_TYPE.OAUTH2: {

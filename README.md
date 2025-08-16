@@ -22,7 +22,7 @@
 - 📚 **API Documentation** - Streamlined Swagger documentation with `@ApiEndpoint` decorators
 - 🔍 **Validation Error Documentation** - Auto-generate validation error examples in Swagger
 - 🏗️ **Standardized DTOs** - Consistent API response and error handling structures
-- 🔐 **Authentication Support** - Predefined auth types and configurations
+- 🔐 **Multi-Provider Authentication** - Support for multiple JWT, API Key, OAuth2, Basic, and Cookie auth providers
 - 📄 **Pagination Utilities** - Offset and cursor-based pagination support
 - 🛡️ **Error Handling** - Global exception filters with standardized responses
 - 🎨 **Modern UI Components** - Beautiful and responsive design patterns
@@ -48,7 +48,7 @@ pnpm add @ecom-co/utils
 
 ```typescript
 import { Module } from '@nestjs/common';
-import { swaggerConfig } from '@ecom-co/utils';
+import { setUpSwagger } from '@ecom-co/utils';
 
 @Module({
   imports: [],
@@ -59,8 +59,56 @@ export class AppModule {}
 
 // In main.ts
 const app = await NestFactory.create(AppModule);
-const document = SwaggerModule.createDocument(app, swaggerConfig);
-SwaggerModule.setup('api', app, document);
+
+// Setup Swagger with multiple authentication providers
+setUpSwagger(app, {
+  port: 3000,
+  title: 'E-commerce API',
+  description: 'Comprehensive e-commerce platform API',
+  version: '1.0.0',
+  nodeEnv: 'development',
+  servers: [
+    { url: 'http://localhost:3000', description: 'Local Development' },
+    { url: 'https://api-staging.example.com', description: 'Staging Environment' },
+    { url: 'https://api.example.com', description: 'Production Environment' },
+  ],
+  jwt: {
+    providers: [
+      {
+        name: 'access-token',
+        description: 'JWT Access Token for regular users',
+      },
+      {
+        name: 'admin-token',
+        description: 'JWT Admin Token for administrative access',
+      },
+    ],
+  },
+  apiKey: {
+    providers: [
+      {
+        name: 'internal-key',
+        in: 'header',
+        keyName: 'X-Internal-Key',
+        description: 'Internal API Key for service-to-service communication',
+      },
+    ],
+  },
+  oauth2: {
+    providers: [
+      {
+        name: 'google',
+        authorizationUrl: 'https://accounts.google.com/oauth/authorize',
+        tokenUrl: 'https://oauth2.googleapis.com/token',
+        scopes: {
+          'https://www.googleapis.com/auth/userinfo.profile': 'View profile',
+          'https://www.googleapis.com/auth/userinfo.email': 'View email',
+        },
+        description: 'Google OAuth2 authentication',
+      },
+    ],
+  },
+});
 ```
 
 ### 2. Create Your First DTO
@@ -114,7 +162,7 @@ export class UserController {
     description: 'Creates a new user account with the provided information',
     tags: ['Users'],
     response: UserDto,
-    auth: { type: AUTH_TYPE.JWT, required: true },
+    auth: { type: AUTH_TYPE.JWT, provider: 'access-token', required: true },
     body: { type: CreateUserDto },
     errors: [HttpStatus.CONFLICT],
     validation: {
@@ -128,6 +176,25 @@ export class UserController {
   async createUser(@Body() createUserDto: CreateUserDto) {
     // Your implementation here
     return { message: 'User created successfully' };
+  }
+
+  // Example with multiple authentication providers
+  @ApiValidationEndpoint({
+    summary: 'Admin user management',
+    description: 'Admin-only endpoint for user management',
+    tags: ['Users', 'Admin'],
+    response: UserDto,
+    auth: [
+      { type: AUTH_TYPE.JWT, provider: 'admin-token', required: true },
+      { type: AUTH_TYPE.API_KEY, provider: 'internal-key', required: false },
+    ],
+    body: { type: CreateUserDto },
+    errors: [HttpStatus.FORBIDDEN, HttpStatus.CONFLICT],
+  })
+  @Post('admin')
+  async createUserAsAdmin(@Body() createUserDto: CreateUserDto) {
+    // Admin implementation
+    return { message: 'User created by admin' };
   }
 }
 ```
@@ -487,7 +554,7 @@ const UserPaginatedResponseDto = ApiPaginatedResponseDto(UserDto);
 const UserCursorPaginatedResponseDto = ApiCursorPaginatedResponseDto(UserDto);
 ```
 
-### 🔧 Constants
+### 🔐 Multi-Provider Authentication
 
 #### Authentication Types
 
@@ -500,6 +567,106 @@ AUTH_TYPE.API_KEY    // API Key authentication
 AUTH_TYPE.OAUTH2     // OAuth2 authentication
 AUTH_TYPE.BASIC      // Basic authentication
 AUTH_TYPE.COOKIE     // Cookie-based authentication
+
+// Multiple authentication providers support
+// JWT Providers: access-token, admin-token, service-token, refresh-token
+// API Key Providers: internal-key, external-key, query-api-key
+// OAuth2 Providers: google, github, facebook, etc.
+```
+
+#### Multiple Authentication Providers
+
+```typescript
+// Single provider
+@ApiEndpoint({
+  auth: { type: AUTH_TYPE.JWT, provider: 'access-token', required: true }
+})
+
+// Multiple providers (OR logic)
+@ApiEndpoint({
+  auth: [
+    { type: AUTH_TYPE.JWT, provider: 'access-token', required: false },
+    { type: AUTH_TYPE.JWT, provider: 'admin-token', required: false },
+    { type: AUTH_TYPE.API_KEY, provider: 'internal-key', required: false },
+  ]
+})
+
+// Multiple API Key providers
+@ApiEndpoint({
+  auth: [
+    { type: AUTH_TYPE.API_KEY, provider: 'prod-key' },
+    { type: AUTH_TYPE.API_KEY, provider: 'staging-key' },
+  ]
+})
+```
+
+#### OAuth2 Providers
+
+```typescript
+// Google OAuth2
+@ApiEndpoint({
+  auth: { type: AUTH_TYPE.OAUTH2, provider: 'google', scopes: ['https://www.googleapis.com/auth/userinfo.profile'] }
+})
+
+// GitHub OAuth2
+@ApiEndpoint({
+  auth: { type: AUTH_TYPE.OAUTH2, provider: 'github', scopes: ['user'] }
+})
+
+// Multiple OAuth2 providers
+@ApiEndpoint({
+  auth: [
+    { type: AUTH_TYPE.OAUTH2, provider: 'google', scopes: ['https://www.googleapis.com/auth/userinfo.profile'] },
+    { type: AUTH_TYPE.OAUTH2, provider: 'github', scopes: ['user'] },
+  ]
+})
+```
+
+#### API Key Providers
+
+```typescript
+// Header-based API Key
+@ApiEndpoint({
+  auth: { type: AUTH_TYPE.API_KEY, provider: 'internal-key' }
+})
+
+// Query-based API Key
+@ApiEndpoint({
+  auth: { type: AUTH_TYPE.API_KEY, provider: 'query-api-key' }
+})
+
+// Cookie-based API Key
+@ApiEndpoint({
+  auth: { type: AUTH_TYPE.API_KEY, provider: 'cookie-api-key' }
+})
+```
+
+### 🔧 Constants
+
+#### Pagination Types
+
+```typescript
+import { PAGINATION_TYPE } from '@ecom-co/utils';
+
+PAGINATION_TYPE.OFFSET  // Offset-based pagination
+PAGINATION_TYPE.CURSOR  // Cursor-based pagination
+```
+
+#### Database Operators
+
+```typescript
+import { OPERATOR } from '@ecom-co/utils';
+
+// Available operators for queries
+OPERATOR.EQ    // Equal
+OPERATOR.NE    // Not equal
+OPERATOR.GT    // Greater than
+OPERATOR.GTE   // Greater than or equal
+OPERATOR.LT    // Less than
+OPERATOR.LTE   // Less than or equal
+OPERATOR.LIKE  // Like (string matching)
+OPERATOR.IN    // In array
+OPERATOR.NIN   // Not in array
 ```
 
 #### Pagination Types
@@ -663,7 +830,7 @@ export class ProductController {
       { name: 'inStock', type: 'boolean' },
       { name: 'sortBy', type: 'string', enum: ['name', 'price', 'createdAt'] }
     ],
-    auth: { type: AUTH_TYPE.JWT, required: false },
+    auth: { type: AUTH_TYPE.JWT, provider: 'access-token', required: false },
     includeCommonErrors: true
   })
   @Get()
@@ -677,7 +844,7 @@ export class ProductController {
     tags: ['Products'],
     response: ProductDto,
     params: [{ name: 'id', type: 'uuid', description: 'Product ID' }],
-    auth: { type: AUTH_TYPE.JWT, required: false },
+    auth: { type: AUTH_TYPE.JWT, provider: 'access-token', required: false },
     errors: [HttpStatus.NOT_FOUND]
   })
   @Get(':id')
@@ -691,7 +858,7 @@ export class ProductController {
     tags: ['Products'],
     response: ProductDto,
     body: { type: CreateProductDto, description: 'Product creation data' },
-    auth: { type: AUTH_TYPE.JWT, required: true },
+    auth: { type: AUTH_TYPE.JWT, provider: 'access-token', required: true },
     errors: [HttpStatus.CONFLICT],
     validation: {
       errorExamples: [
@@ -713,7 +880,7 @@ export class ProductController {
     response: ProductDto,
     body: { type: UpdateProductDto },
     params: [{ name: 'id', type: 'uuid' }],
-    auth: { type: AUTH_TYPE.JWT, required: true },
+    auth: { type: AUTH_TYPE.JWT, provider: 'access-token', required: true },
     errors: [HttpStatus.NOT_FOUND],
     validation: {
       errorExamples: [
@@ -735,12 +902,30 @@ export class ProductController {
     description: 'Permanently delete a product',
     tags: ['Products'],
     params: [{ name: 'id', type: 'uuid' }],
-    auth: { type: AUTH_TYPE.JWT, required: true },
-    errors: [HttpStatus.NOT_FOUND]
+    auth: { type: AUTH_TYPE.JWT, provider: 'admin-token', required: true },
+    errors: [HttpStatus.NOT_FOUND, HttpStatus.FORBIDDEN]
   })
   @Delete(':id')
   async deleteProduct(@Param('id') id: string) {
     return this.productService.delete(id);
+  }
+
+  // Example with multiple authentication providers
+  @ApiValidationEndpoint({
+    summary: 'Bulk product operations',
+    description: 'Admin-only bulk operations with multiple auth options',
+    tags: ['Products', 'Admin'],
+    response: ProductDto,
+    body: { type: BulkProductDto },
+    auth: [
+      { type: AUTH_TYPE.JWT, provider: 'admin-token', required: true },
+      { type: AUTH_TYPE.API_KEY, provider: 'internal-key', required: false },
+    ],
+    errors: [HttpStatus.FORBIDDEN, HttpStatus.BAD_REQUEST],
+  })
+  @Post('bulk')
+  async bulkOperations(@Body() bulkDto: BulkProductDto) {
+    return this.productService.bulkOperations(bulkDto);
   }
 }
 ```
@@ -1032,6 +1217,54 @@ export class OrderDto {
 
 ## 🛠️ Configuration
 
+### Multiple Authentication Providers
+
+Configure different authentication providers for your API:
+
+```typescript
+setUpSwagger(app, {
+  servers: [
+    { url: 'https://api.example.com', description: 'Production' },
+    { url: 'https://api-staging.example.com', description: 'Staging' },
+    { url: 'https://api-dev.example.com', description: 'Development' },
+  ],
+  apiKey: {
+    providers: [
+      {
+        name: 'prod-key',
+        in: 'header',
+        keyName: 'X-Prod-Key',
+        description: 'Production API Key',
+      },
+      {
+        name: 'staging-key',
+        in: 'header',
+        keyName: 'X-Staging-Key',
+        description: 'Staging API Key',
+      },
+      {
+        name: 'dev-key',
+        in: 'header',
+        keyName: 'X-Dev-Key',
+        description: 'Development API Key',
+      },
+    ],
+  },
+  jwt: {
+    providers: [
+      {
+        name: 'prod-access-token',
+        description: 'Production Access Token',
+      },
+      {
+        name: 'staging-access-token',
+        description: 'Staging Access Token',
+      },
+    ],
+  },
+});
+```
+
 ### Validation Configuration
 
 ```typescript
@@ -1065,7 +1298,7 @@ app.useGlobalPipes(
 ### Swagger Configuration
 
 ```typescript
-import { swaggerConfig } from '@ecom-co/utils';
+import { setUpSwagger } from '@ecom-co/utils';
 
 // In your main.ts
 const app = await NestFactory.create(AppModule);
@@ -1079,9 +1312,75 @@ app.enableCors({
 // Global prefix
 app.setGlobalPrefix('api/v1');
 
-// Swagger documentation
-const document = SwaggerModule.createDocument(app, swaggerConfig);
-SwaggerModule.setup('api/docs', app, document);
+// Setup Swagger with multiple authentication providers and servers
+setUpSwagger(app, {
+  port: process.env.PORT || 3000,
+  title: 'E-commerce API',
+  description: 'Comprehensive e-commerce platform API with multi-provider authentication',
+  version: '1.0.0',
+  nodeEnv: process.env.NODE_ENV || 'development',
+  servers: [
+    { url: 'http://localhost:3000', description: 'Local Development' },
+    { url: 'https://api-staging.example.com', description: 'Staging Environment' },
+    { url: 'https://api.example.com', description: 'Production Environment' },
+  ],
+  jwt: {
+    providers: [
+      {
+        name: 'access-token',
+        description: 'JWT Access Token for regular users',
+      },
+      {
+        name: 'admin-token',
+        description: 'JWT Admin Token for administrative access',
+      },
+      {
+        name: 'service-token',
+        description: 'JWT Service Token for service-to-service communication',
+      },
+    ],
+  },
+  apiKey: {
+    providers: [
+      {
+        name: 'internal-key',
+        in: 'header',
+        keyName: 'X-Internal-Key',
+        description: 'Internal API Key for service-to-service communication',
+      },
+      {
+        name: 'external-key',
+        in: 'header',
+        keyName: 'X-External-Key',
+        description: 'External API Key for third-party integrations',
+      },
+    ],
+  },
+  oauth2: {
+    providers: [
+      {
+        name: 'google',
+        authorizationUrl: 'https://accounts.google.com/oauth/authorize',
+        tokenUrl: 'https://oauth2.googleapis.com/token',
+        scopes: {
+          'https://www.googleapis.com/auth/userinfo.profile': 'View profile',
+          'https://www.googleapis.com/auth/userinfo.email': 'View email',
+        },
+        description: 'Google OAuth2 authentication',
+      },
+      {
+        name: 'github',
+        authorizationUrl: 'https://github.com/login/oauth/authorize',
+        tokenUrl: 'https://github.com/login/oauth/access_token',
+        scopes: {
+          'user': 'Read user data',
+          'repo': 'Read repository data',
+        },
+        description: 'GitHub OAuth2 authentication',
+      },
+    ],
+  },
+});
 
 await app.listen(process.env.PORT || 3000);
 ```
