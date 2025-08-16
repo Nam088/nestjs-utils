@@ -68,6 +68,16 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
             },
             'bearer',
         )
+        // JWT Provider Header
+        .addApiKey(
+            {
+                type: 'apiKey',
+                in: 'header',
+                name: 'X-JWT-Provider',
+                description: 'Auto-generated JWT provider type',
+            },
+            'jwt-provider',
+        )
         // API Key Authentication
         .addApiKey(
             {

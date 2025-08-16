@@ -226,13 +226,27 @@ const createAuthDecorators = (authConfig: AuthConfig | AuthConfig[]): MethodDeco
     const decorators: MethodDecorator[] = [];
     const authConfigs = Array.isArray(authConfig) ? authConfig : [authConfig];
 
+    // Add JWT providers
+    const jwtProviders = authConfigs.filter((config) => config.type === AUTH_TYPE.JWT);
+    if (jwtProviders.length > 0) {
+        decorators.push(ApiBearerAuth());
+
+        // Auto-add provider header for multiple JWT providers
+        if (jwtProviders.length > 1) {
+            decorators.push(
+                ApiHeader({
+                    name: 'X-JWT-Provider',
+                    description: 'JWT Provider type',
+                    required: false,
+                    example: jwtProviders[0].provider || 'access-token',
+                }),
+            );
+        }
+    }
+
+    // Add other auth types
     authConfigs.forEach((config) => {
         switch (config.type) {
-            case AUTH_TYPE.JWT: {
-                const providerName = config.provider || 'bearer';
-                decorators.push(ApiBearerAuth(providerName));
-                break;
-            }
             case AUTH_TYPE.API_KEY: {
                 const apiKeyDecorators = createApiKeyDecorator(config);
                 decorators.push(...apiKeyDecorators);
