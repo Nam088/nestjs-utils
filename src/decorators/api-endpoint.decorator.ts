@@ -229,20 +229,11 @@ const createAuthDecorators = (authConfig: AuthConfig | AuthConfig[]): MethodDeco
     // Add JWT providers
     const jwtProviders = authConfigs.filter((config) => config.type === AUTH_TYPE.JWT);
     if (jwtProviders.length > 0) {
-        decorators.push(ApiBearerAuth());
-
-        // Auto-add provider header for multiple JWT providers
-        if (jwtProviders.length > 1) {
-            decorators.push(
-                ApiHeader({
-                    name: 'X-JWT-Provider',
-                    description: 'JWT Provider type',
-                    required: false,
-                    enum: jwtProviders.map((p) => p.provider || 'access-token'),
-                    example: jwtProviders[0].provider || 'access-token',
-                }),
-            );
-        }
+        // Add individual Bearer Auth for each provider
+        jwtProviders.forEach((provider) => {
+            const providerName = provider.provider || 'bearer';
+            decorators.push(ApiBearerAuth(providerName));
+        });
     }
 
     // Add other auth types
