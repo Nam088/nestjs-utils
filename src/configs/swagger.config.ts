@@ -239,8 +239,30 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
           #ecom-topbar .right { display:flex; align-items:center; gap:16px; }
           #ecom-topbar .right .link { color: #60a5fa; text-decoration: none; font-weight:600; }
           #ecom-topbar .right .link:hover { color:#93c5fd; text-decoration: underline; }
+          
+          /* Token Selector Styles */
+          .token-selector {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+          }
+          .token-selector label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #495057;
+          }
+          .token-selector select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            background: white;
+          }
         `,
-        // Inject custom HTML topbar
+        // Inject custom HTML topbar and token selector
         customJsStr: `
           (function(){
             try {
@@ -251,6 +273,26 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
                 document.body.insertAdjacentElement('afterbegin', topbar);
               }
             } catch (e) { /* no-op */ }
+          })();
+          
+          // Add token selector dropdown
+          (function() {
+            setTimeout(function() {
+              const authSection = document.querySelector('.auth-wrapper');
+              if (authSection && document.querySelectorAll('.auth-wrapper .auth-container').length > 1) {
+                const selector = document.createElement('div');
+                selector.innerHTML = \`
+                  <div class="token-selector">
+                    <label>Select Token Type:</label>
+                    <select id="tokenTypeSelect">
+                      <option value="access-token">Access Token</option>
+                      <option value="admin-token">Admin Token</option>
+                    </select>
+                  </div>
+                \`;
+                authSection.appendChild(selector);
+              }
+            }, 1000);
           })();
         `,
         swaggerOptions: {
