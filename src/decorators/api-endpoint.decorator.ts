@@ -238,6 +238,7 @@ const createAuthDecorators = (authConfig: AuthConfig | AuthConfig[]): MethodDeco
                     name: 'X-JWT-Provider',
                     description: 'JWT Provider type',
                     required: false,
+                    enum: jwtProviders.map((p) => p.provider || 'access-token'),
                     example: jwtProviders[0].provider || 'access-token',
                 }),
             );
