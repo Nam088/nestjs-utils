@@ -1,4 +1,5 @@
 import { Type } from '@nestjs/common';
+
 import { ApiProperty } from '@nestjs/swagger';
 
 import { Exclude, Expose } from 'class-transformer';
@@ -7,26 +8,26 @@ import { Exclude, Expose } from 'class-transformer';
  * Interface for Paging constructor options
  */
 export interface PagingOptions {
-    page: number;
+    currentPageSize?: number;
+    endItem?: number;
+    firstPage?: number;
+    hasNextPage?: boolean;
+    hasPreviousPage?: boolean;
+    lastPage?: number;
     limit: number;
+    offset?: number;
+    page: number;
+    startItem?: number;
     total: number;
     totalPages?: number;
-    currentPageSize?: number;
-    hasPreviousPage?: boolean;
-    hasNextPage?: boolean;
-    firstPage?: number;
-    lastPage?: number;
-    offset?: number;
-    startItem?: number;
-    endItem?: number;
 }
 
 /**
  * Interface for Paging static method options
  */
 export interface PagingCreateOptions {
-    page: number;
     limit: number;
+    page: number;
     total: number;
     totalPages?: number;
 }
@@ -35,61 +36,61 @@ export interface PagingCreateOptions {
  * Interface for Paging auto calculation options
  */
 export interface PagingAutoCalculationOptions {
-    page: number;
-    limit: number;
-    total: number;
     currentPageSize?: number;
+    limit: number;
+    page: number;
+    total: number;
 }
 
 @Exclude()
 export class Paging {
+    @ApiProperty({ description: 'Number of items in current page', example: 10, required: false })
     @Expose()
-    @ApiProperty({ example: 1, description: 'Current page number' })
-    page!: number;
-
-    @Expose()
-    @ApiProperty({ example: 10, description: 'Number of items per page' })
-    limit!: number;
-
-    @Expose()
-    @ApiProperty({ example: 100, description: 'Total number of items' })
-    total!: number;
-
-    @Expose()
-    @ApiProperty({ example: 10, description: 'Total number of pages' })
-    totalPages!: number;
-
-    @Expose()
-    @ApiProperty({ example: 10, description: 'Number of items in current page', required: false })
     currentPageSize?: number;
 
+    @ApiProperty({ description: 'Ending item number in current page', example: 20, required: false })
     @Expose()
-    @ApiProperty({ example: true, description: 'Indicates if there is a previous page', required: false })
-    hasPreviousPage?: boolean;
+    endItem?: number;
 
+    @ApiProperty({ description: 'First page number', example: 1, required: false })
     @Expose()
-    @ApiProperty({ example: true, description: 'Indicates if there is a next page', required: false })
-    hasNextPage?: boolean;
-
-    @Expose()
-    @ApiProperty({ example: 1, description: 'First page number', required: false })
     firstPage?: number;
 
+    @ApiProperty({ description: 'Indicates if there is a next page', example: true, required: false })
     @Expose()
-    @ApiProperty({ example: 10, description: 'Last page number', required: false })
+    hasNextPage?: boolean;
+
+    @ApiProperty({ description: 'Indicates if there is a previous page', example: true, required: false })
+    @Expose()
+    hasPreviousPage?: boolean;
+
+    @ApiProperty({ description: 'Last page number', example: 10, required: false })
+    @Expose()
     lastPage?: number;
 
+    @ApiProperty({ description: 'Number of items per page', example: 10 })
     @Expose()
-    @ApiProperty({ example: 0, description: 'Number of items to skip (offset)', required: false })
+    limit!: number;
+
+    @ApiProperty({ description: 'Number of items to skip (offset)', example: 0, required: false })
+    @Expose()
     offset?: number;
 
+    @ApiProperty({ description: 'Current page number', example: 1 })
     @Expose()
-    @ApiProperty({ example: 11, description: 'Starting item number in current page', required: false })
+    page!: number;
+
+    @ApiProperty({ description: 'Starting item number in current page', example: 11, required: false })
+    @Expose()
     startItem?: number;
 
+    @ApiProperty({ description: 'Total number of items', example: 100 })
     @Expose()
-    @ApiProperty({ example: 20, description: 'Ending item number in current page', required: false })
-    endItem?: number;
+    total!: number;
+
+    @ApiProperty({ description: 'Total number of pages', example: 10 })
+    @Expose()
+    totalPages!: number;
 
     constructor(options: PagingOptions) {
         this.page = options.page;
@@ -118,25 +119,25 @@ export class Paging {
      * Helper method to create paging with automatic calculation
      */
     static createWithAutoCalculation(options: PagingAutoCalculationOptions): Paging {
-        const { page, limit, total, currentPageSize } = options;
+        const { currentPageSize, limit, page, total } = options;
         const totalPages = Math.ceil(total / limit);
         const offset = (page - 1) * limit;
         const startItem = offset + 1;
         const endItem = Math.min(offset + limit, total);
 
         return new Paging({
-            page,
+            currentPageSize,
+            endItem,
+            firstPage: 1,
+            hasNextPage: page < totalPages,
+            hasPreviousPage: page > 1,
+            lastPage: totalPages,
             limit,
+            offset,
+            page,
+            startItem,
             total,
             totalPages,
-            currentPageSize,
-            hasPreviousPage: page > 1,
-            hasNextPage: page < totalPages,
-            firstPage: 1,
-            lastPage: totalPages,
-            offset,
-            startItem,
-            endItem,
         });
     }
 }
@@ -146,10 +147,10 @@ export class Paging {
  * @template T The type of the data items in the array.
  */
 export interface IApiPaginatedResponse<T> {
-    statusCode: number;
-    message: string;
     data: T[];
+    message: string;
     paging: Paging;
+    statusCode: number;
 }
 
 /**
@@ -158,8 +159,8 @@ export interface IApiPaginatedResponse<T> {
  */
 export interface ApiPaginatedResponseDataOptions<T> {
     data: T[];
-    paging: Paging;
     message?: string;
+    paging: Paging;
     statusCode?: number;
 }
 
@@ -168,11 +169,11 @@ export interface ApiPaginatedResponseDataOptions<T> {
  */
 export interface ApiPaginatedResponseDataAutoPagingOptions<T> {
     data: T[];
-    total: number;
-    page: number;
     limit: number;
     message?: string;
+    page: number;
     statusCode?: number;
+    total: number;
 }
 
 /**
@@ -180,10 +181,10 @@ export interface ApiPaginatedResponseDataAutoPagingOptions<T> {
  * @template T The type of the data items in the array.
  */
 export class ApiPaginatedResponseData<T> implements IApiPaginatedResponse<T> {
-    statusCode: number;
-    message: string;
     data: T[];
+    message: string;
     paging: Paging;
+    statusCode: number;
 
     constructor(options: ApiPaginatedResponseDataOptions<T>) {
         this.statusCode = options.statusCode ?? 200;
@@ -197,16 +198,17 @@ export class ApiPaginatedResponseData<T> implements IApiPaginatedResponse<T> {
      * @deprecated Use constructor with object parameter instead
      */
     static create<T>(data: T[], paging: Paging, message = 'Success', statusCode = 200): ApiPaginatedResponseData<T> {
-        return new ApiPaginatedResponseData({ data, paging, message, statusCode });
+        return new ApiPaginatedResponseData({ data, message, paging, statusCode });
     }
 
     /**
      * Helper method to create paginated response with automatic paging calculation
      */
     static createWithAutoPaging<T>(options: ApiPaginatedResponseDataAutoPagingOptions<T>): ApiPaginatedResponseData<T> {
-        const { data, total, page, limit, message = 'Success', statusCode = 200 } = options;
-        const paging = Paging.createWithAutoCalculation({ page, limit, total, currentPageSize: data.length });
-        return new ApiPaginatedResponseData({ data, paging, message, statusCode });
+        const { data, limit, message = 'Success', page, statusCode = 200, total } = options;
+        const paging = Paging.createWithAutoCalculation({ currentPageSize: data.length, limit, page, total });
+
+        return new ApiPaginatedResponseData({ data, message, paging, statusCode });
     }
 }
 
@@ -218,17 +220,17 @@ export class ApiPaginatedResponseData<T> implements IApiPaginatedResponse<T> {
  */
 export const ApiPaginatedResponseDto = <T>(itemType: Type<T>) => {
     class PaginatedResponse implements IApiPaginatedResponse<T> {
-        @ApiProperty({ example: 200, description: 'HTTP Status Code' })
-        statusCode!: number;
-
-        @ApiProperty({ example: 'Success', description: 'A descriptive message for the result.' })
-        message!: string;
-
         @ApiProperty({ type: [itemType] })
         data!: T[];
 
+        @ApiProperty({ description: 'A descriptive message for the result.', example: 'Success' })
+        message!: string;
+
         @ApiProperty({ type: () => Paging })
         paging!: Paging;
+
+        @ApiProperty({ description: 'HTTP Status Code', example: 200 })
+        statusCode!: number;
     }
 
     // Give the dynamically generated class a unique name for Swagger to avoid conflicts.
@@ -245,100 +247,100 @@ export const ApiPaginatedResponseDto = <T>(itemType: Type<T>) => {
  * Interface for CursorPaging constructor options
  */
 export interface CursorPagingOptions {
-    nextCursor: string | null;
-    hasNextPage: boolean;
-    previousCursor?: string | null;
-    firstCursor?: string | null;
-    lastCursor?: string | null;
-    hasPreviousPage?: boolean;
+    currentPage?: null | number;
     currentPageSize?: number;
-    total?: number | null;
-    totalPages?: number | null;
-    currentPage?: number | null;
+    firstCursor?: null | string;
+    hasNextPage: boolean;
+    hasPreviousPage?: boolean;
+    lastCursor?: null | string;
+    nextCursor: null | string;
+    previousCursor?: null | string;
+    total?: null | number;
+    totalPages?: null | number;
 }
 
 /**
  * Interface for CursorPaging static method options
  */
 export interface CursorPagingCreateOptions {
-    nextCursor: string | null;
     hasNextPage: boolean;
+    nextCursor: null | string;
 }
 
 /**
  * Interface for CursorPaging auto calculation options
  */
-export interface CursorPagingAutoCalculationOptions {
-    data: any[];
+export interface CursorPagingAutoCalculationOptions<T> {
+    currentPage?: null | number;
+    data: T[];
+    firstCursor?: null | string;
+    lastCursor?: null | string;
     limit: number;
-    nextCursor?: string | null;
-    previousCursor?: string | null;
-    firstCursor?: string | null;
-    lastCursor?: string | null;
-    total?: number | null;
-    currentPage?: number | null;
+    nextCursor?: null | string;
+    previousCursor?: null | string;
+    total?: null | number;
 }
 
 @Exclude()
 export class CursorPaging {
+    @ApiProperty({ description: 'Current page number (if available)', example: 1, required: false })
     @Expose()
-    @ApiProperty({
-        example: 'eyJjcmVhdGVkQXQiOiIyMDI0LTAxLTAxVDEyOjAwOjAwLjAwMFoiLCJpZCI6ImFhYmJjYyJ9',
-        description: 'The cursor pointing to the next page of results.',
-        nullable: true,
-    })
-    nextCursor!: string | null;
+    currentPage?: null | number;
 
+    @ApiProperty({ description: 'Number of items in current page', example: 20, required: false })
     @Expose()
-    @ApiProperty({ example: true, description: 'Indicates if there is a next page of results.' })
-    hasNextPage!: boolean;
-
-    @Expose()
-    @ApiProperty({
-        example: 'eyJjcmVhdGVkQXQiOiIyMDI0LTAxLTAxVDEyOjAwOjAwLjAwMFoiLCJpZCI6Inh4eHh4eHgifQ==',
-        description: 'The cursor pointing to the previous page of results.',
-        nullable: true,
-        required: false,
-    })
-    previousCursor?: string | null;
-
-    @Expose()
-    @ApiProperty({
-        example: 'eyJjcmVhdGVkQXQiOiIyMDI0LTAxLTAxVDEyOjAwOjAwLjAwMFoiLCJpZCI6ImFhYmJjYyJ9',
-        description: 'The cursor pointing to the first page of results.',
-        nullable: true,
-        required: false,
-    })
-    firstCursor?: string | null;
-
-    @Expose()
-    @ApiProperty({
-        example: 'eyJjcmVhdGVkQXQiOiIyMDI0LTEyLTMxVDIzOjU5OjU5LjAwMFoiLCJpZCI6Inp6enp6enoifQ==',
-        description: 'The cursor pointing to the last page of results.',
-        nullable: true,
-        required: false,
-    })
-    lastCursor?: string | null;
-
-    @Expose()
-    @ApiProperty({ example: false, description: 'Indicates if there is a previous page of results.', required: false })
-    hasPreviousPage?: boolean;
-
-    @Expose()
-    @ApiProperty({ example: 20, description: 'Number of items in current page', required: false })
     currentPageSize?: number;
 
+    @ApiProperty({
+        description: 'The cursor pointing to the first page of results.',
+        example: 'eyJjcmVhdGVkQXQiOiIyMDI0LTAxLTAxVDEyOjAwOjAwLjAwMFoiLCJpZCI6ImFhYmJjYyJ9',
+        nullable: true,
+        required: false,
+    })
     @Expose()
-    @ApiProperty({ example: 1000, description: 'Total number of items (if available)', required: false })
-    total?: number | null;
+    firstCursor?: null | string;
 
+    @ApiProperty({ description: 'Indicates if there is a next page of results.', example: true })
     @Expose()
-    @ApiProperty({ example: 50, description: 'Total number of pages (if available)', required: false })
-    totalPages?: number | null;
+    hasNextPage!: boolean;
 
+    @ApiProperty({ description: 'Indicates if there is a previous page of results.', example: false, required: false })
     @Expose()
-    @ApiProperty({ example: 1, description: 'Current page number (if available)', required: false })
-    currentPage?: number | null;
+    hasPreviousPage?: boolean;
+
+    @ApiProperty({
+        description: 'The cursor pointing to the last page of results.',
+        example: 'eyJjcmVhdGVkQXQiOiIyMDI0LTEyLTMxVDIzOjU5OjU5LjAwMFoiLCJpZCI6Inp6enp6enoifQ==',
+        nullable: true,
+        required: false,
+    })
+    @Expose()
+    lastCursor?: null | string;
+
+    @ApiProperty({
+        description: 'The cursor pointing to the next page of results.',
+        example: 'eyJjcmVhdGVkQXQiOiIyMDI0LTAxLTAxVDEyOjAwOjAwLjAwMFoiLCJpZCI6ImFhYmJjYyJ9',
+        nullable: true,
+    })
+    @Expose()
+    nextCursor!: null | string;
+
+    @ApiProperty({
+        description: 'The cursor pointing to the previous page of results.',
+        example: 'eyJjcmVhdGVkQXQiOiIyMDI0LTAxLTAxVDEyOjAwOjAwLjAwMFoiLCJpZCI6Inh4eHh4eHgifQ==',
+        nullable: true,
+        required: false,
+    })
+    @Expose()
+    previousCursor?: null | string;
+
+    @ApiProperty({ description: 'Total number of items (if available)', example: 1000, required: false })
+    @Expose()
+    total?: null | number;
+
+    @ApiProperty({ description: 'Total number of pages (if available)', example: 50, required: false })
+    @Expose()
+    totalPages?: null | number;
 
     constructor(options: CursorPagingOptions) {
         this.nextCursor = options.nextCursor;
@@ -364,32 +366,32 @@ export class CursorPaging {
     /**
      * Helper method to create cursor paging with automatic calculation
      */
-    static createWithAutoCalculation(options: CursorPagingAutoCalculationOptions): CursorPaging {
-        const { data, limit, nextCursor, previousCursor, firstCursor, lastCursor, total, currentPage } = options;
+    static createWithAutoCalculation<T>(options: CursorPagingAutoCalculationOptions<T>): CursorPaging {
+        const { currentPage, data, firstCursor, lastCursor, limit, nextCursor, previousCursor, total } = options;
         const hasNextPage = data.length > limit;
         const actualData = hasNextPage ? data.slice(0, limit) : data;
         const currentPageSize = actualData.length;
 
         return new CursorPaging({
-            nextCursor: nextCursor ?? null,
-            hasNextPage,
-            previousCursor: previousCursor ?? null,
-            firstCursor: firstCursor ?? null,
-            lastCursor: lastCursor ?? null,
-            hasPreviousPage: !!previousCursor,
+            currentPage,
             currentPageSize,
+            firstCursor: firstCursor ?? null,
+            hasNextPage,
+            hasPreviousPage: !!previousCursor,
+            lastCursor: lastCursor ?? null,
+            nextCursor: nextCursor ?? null,
+            previousCursor: previousCursor ?? null,
             total,
             totalPages: total ? Math.ceil(total / limit) : null,
-            currentPage,
         });
     }
 }
 
 export interface IApiCursorPaginatedResponse<T> {
-    statusCode: number;
-    message: string;
-    data: T[];
     cursorPaging: CursorPaging;
+    data: T[];
+    message: string;
+    statusCode: number;
 }
 
 /**
@@ -397,8 +399,8 @@ export interface IApiCursorPaginatedResponse<T> {
  * @template T The type of the data items in the array.
  */
 export interface ApiCursorPaginatedResponseDataOptions<T> {
-    data: T[];
     cursorPaging: CursorPaging;
+    data: T[];
     message?: string;
     statusCode?: number;
 }
@@ -407,16 +409,16 @@ export interface ApiCursorPaginatedResponseDataOptions<T> {
  * Interface for ApiCursorPaginatedResponseData auto cursors options
  */
 export interface ApiCursorPaginatedResponseDataAutoCursorsOptions<T> {
+    currentPage?: null | number;
     data: T[];
+    firstCursor?: null | string;
+    lastCursor?: null | string;
     limit: number;
-    nextCursor?: string | null;
-    previousCursor?: string | null;
-    firstCursor?: string | null;
-    lastCursor?: string | null;
-    total?: number | null;
-    currentPage?: number | null;
     message?: string;
+    nextCursor?: null | string;
+    previousCursor?: null | string;
     statusCode?: number;
+    total?: null | number;
 }
 
 /**
@@ -424,10 +426,10 @@ export interface ApiCursorPaginatedResponseDataAutoCursorsOptions<T> {
  * @template T The type of the data items in the array.
  */
 export class ApiCursorPaginatedResponseData<T> implements IApiCursorPaginatedResponse<T> {
-    statusCode: number;
-    message: string;
-    data: T[];
     cursorPaging: CursorPaging;
+    data: T[];
+    message: string;
+    statusCode: number;
 
     constructor(options: ApiCursorPaginatedResponseDataOptions<T>) {
         this.statusCode = options.statusCode ?? 200;
@@ -446,7 +448,7 @@ export class ApiCursorPaginatedResponseData<T> implements IApiCursorPaginatedRes
         message = 'Success',
         statusCode = 200,
     ): ApiCursorPaginatedResponseData<T> {
-        return new ApiCursorPaginatedResponseData({ data, cursorPaging, message, statusCode });
+        return new ApiCursorPaginatedResponseData({ cursorPaging, data, message, statusCode });
     }
 
     /**
@@ -456,34 +458,34 @@ export class ApiCursorPaginatedResponseData<T> implements IApiCursorPaginatedRes
         options: ApiCursorPaginatedResponseDataAutoCursorsOptions<T>,
     ): ApiCursorPaginatedResponseData<T> {
         const {
+            currentPage,
             data,
-            limit,
-            nextCursor,
-            previousCursor,
             firstCursor,
             lastCursor,
-            total,
-            currentPage,
+            limit,
             message = 'Success',
+            nextCursor,
+            previousCursor,
             statusCode = 200,
+            total,
         } = options;
 
-        const cursorPaging = CursorPaging.createWithAutoCalculation({
-            data: data as any[],
+        const cursorPaging = CursorPaging.createWithAutoCalculation<T>({
+            currentPage,
+            data,
+            firstCursor,
+            lastCursor,
             limit,
             nextCursor,
             previousCursor,
-            firstCursor,
-            lastCursor,
             total,
-            currentPage,
         });
 
         const actualData = cursorPaging.hasNextPage ? data.slice(0, limit) : data;
 
         return new ApiCursorPaginatedResponseData({
-            data: actualData,
             cursorPaging,
+            data: actualData,
             message,
             statusCode,
         });
@@ -492,15 +494,20 @@ export class ApiCursorPaginatedResponseData<T> implements IApiCursorPaginatedRes
 
 export const ApiCursorPaginatedResponseDto = <T>(itemType: Type<T>) => {
     class CursorPaginatedResponse implements IApiCursorPaginatedResponse<T> {
-        @ApiProperty({ example: 200 })
-        statusCode!: number;
-        @ApiProperty({ example: 'Success' })
-        message!: string;
-        @ApiProperty({ type: [itemType] })
-        data!: T[];
         @ApiProperty({ type: () => CursorPaging })
         cursorPaging!: CursorPaging;
+
+        @ApiProperty({ type: [itemType] })
+        data!: T[];
+
+        @ApiProperty({ example: 'Success' })
+        message!: string;
+
+        @ApiProperty({ example: 200 })
+        statusCode!: number;
     }
+
     Object.defineProperty(CursorPaginatedResponse, 'name', { value: `ApiCursorPaginatedResponseOf${itemType.name}` });
+
     return CursorPaginatedResponse;
 };

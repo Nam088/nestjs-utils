@@ -5,22 +5,16 @@ import { ApiProperty } from '@nestjs/swagger';
  */
 export class ErrorResponseDto {
     @ApiProperty({
-        description: 'The HTTP status code.',
-        example: 500,
+        description: 'Additional error details, available only in development.',
+        required: false,
     })
-    statusCode!: number;
+    details?: Record<string, unknown>;
 
     @ApiProperty({
         description: 'A short description of the error, e.g., "Internal Server Error".',
         example: 'Internal Server Error',
     })
     error!: string;
-
-    @ApiProperty({
-        description: 'A detailed error message.',
-        example: 'An unexpected error occurred while processing your request.',
-    })
-    message!: string;
 
     @ApiProperty({
         description: 'Validation errors array, present when validation fails.',
@@ -44,22 +38,23 @@ export class ErrorResponseDto {
     fieldErrors?: Record<string, Record<string, string>>;
 
     @ApiProperty({
+        description: 'A detailed error message.',
+        example: 'An unexpected error occurred while processing your request.',
+    })
+    message!: string;
+
+    @ApiProperty({
+        description: 'The HTTP method of the request, available only in development.',
+        example: 'GET',
+        required: false,
+    })
+    method?: string;
+
+    @ApiProperty({
         description: 'The path of the request that resulted in an error.',
         example: '/api/v1/fonts/query',
     })
     path!: string;
-
-    @ApiProperty({
-        description: 'The timestamp when the error occurred.',
-        example: '2023-10-27T10:00:00.000Z',
-    })
-    timestamp!: string;
-
-    @ApiProperty({
-        description: 'A unique identifier for the request, useful for tracing and correlation in logs.',
-        example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
-    })
-    requestId!: string;
 
     @ApiProperty({
         description:
@@ -70,17 +65,16 @@ export class ErrorResponseDto {
     stack?: string;
 
     @ApiProperty({
-        description: 'Additional error details, available only in development.',
-        required: false,
+        description: 'The HTTP status code.',
+        example: 500,
     })
-    details?: any;
+    statusCode!: number;
 
     @ApiProperty({
-        description: 'The HTTP method of the request, available only in development.',
-        example: 'GET',
-        required: false,
+        description: 'The timestamp when the error occurred.',
+        example: '2023-10-27T10:00:00.000Z',
     })
-    method?: string;
+    timestamp!: string;
 
     @ApiProperty({
         description: 'The user agent of the client, available only in development.',
@@ -88,4 +82,10 @@ export class ErrorResponseDto {
         required: false,
     })
     userAgent?: string;
+
+    @ApiProperty({
+        description: 'A unique identifier for the request, useful for tracing and correlation in logs.',
+        example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
+    })
+    requestId!: string;
 }

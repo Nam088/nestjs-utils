@@ -1,11 +1,11 @@
 import { Transform } from 'class-transformer';
 
 interface ClampNumberOptions {
-    min: number;
     max: number;
+    min: number;
 }
 
-export const ClampNumber = ({ min, max }: ClampNumberOptions) =>
+export const ClampNumber = ({ max, min }: ClampNumberOptions) =>
     Transform(({ value }) => {
         const num = Number(value);
 

@@ -1,56 +1,81 @@
-import { NestApplication } from '@nestjs/core';
-import { DocumentBuilder, SwaggerCustomOptions, SwaggerDocumentOptions, SwaggerModule } from '@nestjs/swagger';
+/* eslint-disable max-lines-per-function */
+import type { NestApplication } from '@nestjs/core';
 
-export interface SwaggerConfigOptions {
-    port: number | string;
-    title: string;
-    description: string;
-    version: string;
-    nodeEnv: string;
-    servers?: Array<{
-        url: string;
-        description?: string;
-    }>;
-    jwt?: {
-        providers?: Array<{
-            name: string;
-            bearerFormat?: string;
-            description?: string;
-        }>;
-        // Fallback for single provider (backward compatibility)
-        bearerFormat?: string;
-        description?: string;
-    };
-    oauth2?: {
-        providers?: Array<{
-            name: string;
-            authorizationUrl: string;
-            tokenUrl: string;
-            scopes: Record<string, string>;
-            description?: string;
-        }>;
-        // Fallback for single provider (backward compatibility)
-        authorizationUrl?: string;
-        tokenUrl?: string;
-        scopes?: Record<string, string>;
-        description?: string;
-    };
-    apiKey?: {
-        providers?: Array<{
-            name: string;
-            in: 'header' | 'query' | 'cookie';
-            keyName: string;
-            description?: string;
-        }>;
-        // Fallback for single provider (backward compatibility)
-        in?: 'header' | 'query' | 'cookie';
-        keyName?: string;
-        description?: string;
-    };
+import type { SwaggerCustomOptions, SwaggerDocumentOptions } from '@nestjs/swagger';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+
+type ApiKeyLocation = 'cookie' | 'header' | 'query';
+
+// --- API Key ---
+export interface ApiKeyConfig {
+    providers?: ApiKeyProvider[];
+    // Fallback for single provider (backward compatibility)
+    description?: string;
+    in?: ApiKeyLocation;
+    keyName?: string;
 }
 
+export interface ApiKeyProvider {
+    description?: string;
+    in: ApiKeyLocation;
+    keyName: string;
+    name: string;
+}
+
+// --- JWT ---
+export interface JwtConfig {
+    providers?: JwtProvider[];
+    // Fallback for single provider
+    bearerFormat?: string;
+    description?: string;
+}
+
+export interface JwtProvider {
+    bearerFormat?: string;
+    description?: string;
+    name: string;
+}
+
+// --- OAuth2 ---
+export interface OAuth2Config {
+    providers?: OAuth2Provider[];
+    // Fallback for single provider
+    authorizationUrl?: string;
+    description?: string;
+    scopes?: Record<string, string>;
+    tokenUrl?: string;
+}
+
+export interface OAuth2Provider {
+    authorizationUrl: string;
+    description?: string;
+    name: string;
+    scopes: Record<string, string>;
+    tokenUrl: string;
+}
+
+// --- Servers ---
+export interface SwaggerServer {
+    description?: string;
+    url: string;
+}
+
+// --- Main Swagger Config ---
+export interface SwaggerConfigOptions {
+    apiKey?: ApiKeyConfig;
+    description: string;
+    jwt?: JwtConfig;
+    nodeEnv: string;
+    oauth2?: OAuth2Config;
+    port: number | string;
+    servers?: SwaggerServer[];
+    title: string;
+    version: string;
+}
+
+// eslint-disable-next-line complexity
 export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions) => {
-    const { port, title, description, version, nodeEnv, servers, jwt, oauth2, apiKey } = options;
+    const { title, apiKey, description, jwt, nodeEnv, oauth2, port, servers, version } = options;
 
     const documentBuilder = new DocumentBuilder()
         .setTitle(title)
@@ -62,19 +87,19 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
         .addBearerAuth(
             {
                 type: 'http',
-                scheme: 'bearer',
                 bearerFormat: jwt?.bearerFormat || 'JWT',
                 description: jwt?.description || 'JWT access token',
+                scheme: 'bearer',
             },
             'bearer',
         )
         // API Key Authentication
         .addApiKey(
             {
-                type: 'apiKey',
-                in: apiKey?.in || 'header',
                 name: apiKey?.keyName || 'api-key',
+                type: 'apiKey',
                 description: apiKey?.description || 'API Key for authentication',
+                in: apiKey?.in || 'header',
             },
             'api-key',
         );
@@ -85,9 +110,9 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
             documentBuilder.addBearerAuth(
                 {
                     type: 'http',
-                    scheme: 'bearer',
                     bearerFormat: provider.bearerFormat || 'JWT',
                     description: provider.description || `JWT authentication for ${provider.name}`,
+                    scheme: 'bearer',
                 },
                 provider.name,
             );
@@ -99,10 +124,10 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
         apiKey.providers.forEach((provider) => {
             documentBuilder.addApiKey(
                 {
-                    type: 'apiKey',
-                    in: provider.in,
                     name: provider.keyName,
+                    type: 'apiKey',
                     description: provider.description || `API Key authentication for ${provider.name}`,
+                    in: provider.in,
                 },
                 provider.name,
             );
@@ -115,18 +140,18 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
             documentBuilder.addOAuth2(
                 {
                     type: 'oauth2',
+                    description: provider.description || `OAuth2 authentication for ${provider.name}`,
                     flows: {
                         authorizationCode: {
                             authorizationUrl: provider.authorizationUrl,
-                            tokenUrl: provider.tokenUrl,
                             scopes: provider.scopes,
+                            tokenUrl: provider.tokenUrl,
                         },
                         clientCredentials: {
-                            tokenUrl: provider.tokenUrl,
                             scopes: provider.scopes,
+                            tokenUrl: provider.tokenUrl,
                         },
                     },
-                    description: provider.description || `OAuth2 authentication for ${provider.name}`,
                 },
                 provider.name,
             );
@@ -136,26 +161,26 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
         documentBuilder.addOAuth2(
             {
                 type: 'oauth2',
+                description: oauth2?.description || 'OAuth2 authentication with various scopes',
                 flows: {
                     authorizationCode: {
                         authorizationUrl: oauth2?.authorizationUrl || 'https://example.com/oauth/authorize',
-                        tokenUrl: oauth2?.tokenUrl || 'https://example.com/oauth/token',
                         scopes: oauth2?.scopes || {
                             read: 'Read access',
-                            write: 'Write access',
                             'user:read': 'Read user data',
                             'user:write': 'Write user data',
+                            write: 'Write access',
                         },
+                        tokenUrl: oauth2?.tokenUrl || 'https://example.com/oauth/token',
                     },
                     clientCredentials: {
-                        tokenUrl: oauth2?.tokenUrl || 'https://example.com/oauth/token',
                         scopes: oauth2?.scopes || {
                             read: 'Read access',
                             write: 'Write access',
                         },
+                        tokenUrl: oauth2?.tokenUrl || 'https://example.com/oauth/token',
                     },
                 },
-                description: oauth2?.description || 'OAuth2 authentication with various scopes',
             },
             'oauth2',
         );
@@ -164,17 +189,17 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
     documentBuilder
         // Cookie Authentication
         .addCookieAuth('refresh_token', {
-            type: 'apiKey',
-            in: 'cookie',
             name: 'refresh_token',
+            type: 'apiKey',
             description: 'Refresh token stored in httpOnly cookie',
+            in: 'cookie',
         })
         // Basic Authentication
         .addBasicAuth(
             {
                 type: 'http',
-                scheme: 'basic',
                 description: 'Basic authentication with username and password',
+                scheme: 'basic',
             },
             'basic',
         )
@@ -224,8 +249,8 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
       </div>`;
 
     const customOptions: SwaggerCustomOptions = {
-        customSiteTitle: `${title} Docs`,
         customCssUrl: ['https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap'],
+        customSiteTitle: `${title} Docs`,
         // Only customize the topbar; keep default Swagger styles elsewhere
         customCss: `
           .swagger-ui .topbar { display: none; }
@@ -254,12 +279,12 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
           })();
         `,
         swaggerOptions: {
-            persistAuthorization: true,
+            displayRequestDuration: true,
             docExpansion: 'list',
             filter: true,
-            displayRequestDuration: true,
-            tagsSorter: 'alpha',
             operationsSorter: 'alpha',
+            persistAuthorization: true,
+            tagsSorter: 'alpha',
         },
     };
 

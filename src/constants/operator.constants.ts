@@ -9,78 +9,78 @@ import { invert, mapValues } from 'lodash';
 // --- Operator Groups ---
 
 export const STRING_OPERATORS = {
-    EQUALS: 'equals',
-    NOT_EQUALS: 'not_equals',
     CONTAINS: 'contains',
-    NOT_CONTAINS: 'not_contains',
-    LIKE: 'like',
-    NOT_LIKE: 'not_like',
-    STARTS_WITH: 'starts_with',
     ENDS_WITH: 'ends_with',
+    EQUALS: 'equals',
+    IN: 'in',
     IS_EMPTY: 'is_empty',
     IS_NOT_EMPTY: 'is_not_empty',
-    IS_NULL: 'is_null',
     IS_NOT_NULL: 'is_not_null',
-    IN: 'in',
+    IS_NULL: 'is_null',
+    LIKE: 'like',
+    NOT_CONTAINS: 'not_contains',
+    NOT_EQUALS: 'not_equals',
     NOT_IN: 'not_in',
+    NOT_LIKE: 'not_like',
+    STARTS_WITH: 'starts_with',
 } as const;
 
 export const NUMBER_OPERATORS = {
+    BETWEEN: 'between',
     EQUALS: 'equals',
-    NOT_EQUALS: 'not_equals',
     GT: 'gt',
     GTE: 'gte',
+    IS_NOT_NULL: 'is_not_null',
+    IS_NULL: 'is_null',
     LT: 'lt',
     LTE: 'lte',
-    BETWEEN: 'between',
     NOT_BETWEEN: 'not_between',
-    IS_NULL: 'is_null',
-    IS_NOT_NULL: 'is_not_null',
+    NOT_EQUALS: 'not_equals',
 } as const;
 
 export const DATE_OPERATORS = {
+    BETWEEN: 'between',
     EQUALS: 'equals',
-    NOT_EQUALS: 'not_equals',
     GT: 'gt',
     GTE: 'gte',
+    IS_NOT_NULL: 'is_not_null',
+    IS_NULL: 'is_null',
     LT: 'lt',
     LTE: 'lte',
-    BETWEEN: 'between',
-    IS_NULL: 'is_null',
-    IS_NOT_NULL: 'is_not_null',
+    NOT_EQUALS: 'not_equals',
 } as const;
 
 export const BOOLEAN_OPERATORS = {
     EQUALS: 'equals',
-    IS_NULL: 'is_null',
     IS_NOT_NULL: 'is_not_null',
+    IS_NULL: 'is_null',
 } as const;
 
 export const ENUM_OPERATORS = {
     EQUALS: 'equals',
-    NOT_EQUALS: 'not_equals',
     IN: 'in',
-    NOT_IN: 'not_in',
-    IS_NULL: 'is_null',
     IS_NOT_NULL: 'is_not_null',
+    IS_NULL: 'is_null',
+    NOT_EQUALS: 'not_equals',
+    NOT_IN: 'not_in',
 } as const;
 
 export const ARRAY_OPERATORS = {
-    OVERLAPS: 'array_overlaps',
     CONTAINS: 'array_contains', // For checking if a JSONB array contains a value
+    OVERLAPS: 'array_overlaps',
 } as const;
 
 export const JSON_OPERATORS = {
-    EQUALS: 'json_equals',
-    CONTAINS: 'json_contains',
-    IN: 'json_in',
     ARRAY_TEXT_CONTAINS: 'json_array_text_contains', // Custom op for searching text in a json array
+    CONTAINS: 'json_contains',
+    EQUALS: 'json_equals',
+    IN: 'json_in',
 } as const;
 
 export const LOGIC_OPERATORS = {
     AND: 'and',
-    OR: 'or',
     IF: 'if',
+    OR: 'or',
     TERNARY: '?:',
     VAR: 'var',
 } as const;
@@ -89,48 +89,48 @@ export const LOGIC_OPERATORS = {
  * A comprehensive mapping from user-friendly operator names used in blueprint definitions
  * to their actual JSON Logic implementation and metadata. This is the single source of truth.
  */
-export const ALL_OPERATORS_MAP: Record<string, { op: string; arity: number | number[] }> = {
+export const ALL_OPERATORS_MAP: Record<string, { arity: number | number[]; op: string }> = {
     // --- Standard Comparison ---
-    [STRING_OPERATORS.EQUALS]: { op: '==', arity: 2 },
-    [STRING_OPERATORS.NOT_EQUALS]: { op: '!=', arity: 2 },
+    [STRING_OPERATORS.EQUALS]: { arity: 2, op: '==' },
+    [STRING_OPERATORS.NOT_EQUALS]: { arity: 2, op: '!=' },
 
     // --- Strict Comparison ---
-    strict_equals: { op: '===', arity: 2 },
-    strict_not_equals: { op: '!==', arity: 2 },
+    strict_equals: { arity: 2, op: '===' },
+    strict_not_equals: { arity: 2, op: '!==' },
 
     // --- Numeric Comparison ---
-    [NUMBER_OPERATORS.GT]: { op: '>', arity: 2 },
-    [NUMBER_OPERATORS.GTE]: { op: '>=', arity: 2 },
-    [NUMBER_OPERATORS.LT]: { op: '<', arity: 2 },
-    [NUMBER_OPERATORS.LTE]: { op: '<=', arity: 2 },
-    [NUMBER_OPERATORS.BETWEEN]: { op: 'between', arity: 3 },
-    [NUMBER_OPERATORS.NOT_BETWEEN]: { op: 'not_between', arity: 3 },
+    [NUMBER_OPERATORS.BETWEEN]: { arity: 3, op: 'between' },
+    [NUMBER_OPERATORS.GT]: { arity: 2, op: '>' },
+    [NUMBER_OPERATORS.GTE]: { arity: 2, op: '>=' },
+    [NUMBER_OPERATORS.LT]: { arity: 2, op: '<' },
+    [NUMBER_OPERATORS.LTE]: { arity: 2, op: '<=' },
+    [NUMBER_OPERATORS.NOT_BETWEEN]: { arity: 3, op: 'not_between' },
 
     // --- Text Search ---
-    [STRING_OPERATORS.CONTAINS]: { op: 'contains', arity: 2 },
-    [STRING_OPERATORS.NOT_CONTAINS]: { op: 'not_contains', arity: 2 },
-    [STRING_OPERATORS.LIKE]: { op: 'like', arity: 2 },
-    [STRING_OPERATORS.NOT_LIKE]: { op: 'not_like', arity: 2 },
-    [STRING_OPERATORS.STARTS_WITH]: { op: 'starts_with', arity: 2 },
-    [STRING_OPERATORS.ENDS_WITH]: { op: 'ends_with', arity: 2 },
+    [STRING_OPERATORS.CONTAINS]: { arity: 2, op: 'contains' },
+    [STRING_OPERATORS.ENDS_WITH]: { arity: 2, op: 'ends_with' },
+    [STRING_OPERATORS.LIKE]: { arity: 2, op: 'like' },
+    [STRING_OPERATORS.NOT_CONTAINS]: { arity: 2, op: 'not_contains' },
+    [STRING_OPERATORS.NOT_LIKE]: { arity: 2, op: 'not_like' },
+    [STRING_OPERATORS.STARTS_WITH]: { arity: 2, op: 'starts_with' },
 
     // --- Null & Empty Checks ---
-    [STRING_OPERATORS.IS_EMPTY]: { op: 'is_empty', arity: 1 },
-    [STRING_OPERATORS.IS_NOT_EMPTY]: { op: 'is_not_empty', arity: 1 },
-    [STRING_OPERATORS.IS_NULL]: { op: 'is_null', arity: 1 },
-    [STRING_OPERATORS.IS_NOT_NULL]: { op: 'is_not_null', arity: 1 },
+    [STRING_OPERATORS.IS_EMPTY]: { arity: 1, op: 'is_empty' },
+    [STRING_OPERATORS.IS_NOT_EMPTY]: { arity: 1, op: 'is_not_empty' },
+    [STRING_OPERATORS.IS_NOT_NULL]: { arity: 1, op: 'is_not_null' },
+    [STRING_OPERATORS.IS_NULL]: { arity: 1, op: 'is_null' },
 
     // --- Array & Set Operations ---
-    [STRING_OPERATORS.IN]: { op: 'in', arity: 2 },
-    [STRING_OPERATORS.NOT_IN]: { op: 'not_in', arity: 2 },
-    [ARRAY_OPERATORS.OVERLAPS]: { op: 'array_overlaps', arity: 2 },
-    [ARRAY_OPERATORS.CONTAINS]: { op: 'array_contains', arity: 2 },
+    [ARRAY_OPERATORS.CONTAINS]: { arity: 2, op: 'array_contains' },
+    [ARRAY_OPERATORS.OVERLAPS]: { arity: 2, op: 'array_overlaps' },
+    [STRING_OPERATORS.IN]: { arity: 2, op: 'in' },
+    [STRING_OPERATORS.NOT_IN]: { arity: 2, op: 'not_in' },
 
     // --- JSONB Operations (Custom) ---
-    [JSON_OPERATORS.EQUALS]: { op: 'json_equals', arity: 2 },
-    [JSON_OPERATORS.CONTAINS]: { op: 'json_contains', arity: 2 },
-    [JSON_OPERATORS.IN]: { op: 'json_in', arity: 2 },
-    [JSON_OPERATORS.ARRAY_TEXT_CONTAINS]: { op: 'json_array_text_contains', arity: 2 },
+    [JSON_OPERATORS.ARRAY_TEXT_CONTAINS]: { arity: 2, op: 'json_array_text_contains' },
+    [JSON_OPERATORS.CONTAINS]: { arity: 2, op: 'json_contains' },
+    [JSON_OPERATORS.EQUALS]: { arity: 2, op: 'json_equals' },
+    [JSON_OPERATORS.IN]: { arity: 2, op: 'json_in' },
 };
 
 /**
@@ -143,7 +143,7 @@ export const LOGIC_TO_FRIENDLY_MAP = invert(mapValues(ALL_OPERATORS_MAP, (v) => 
  * A set of operators whose names are the same in both blueprints and json-logic.
  */
 export const NATIVE_OPERATORS = new Set([
-    'in',
     'contains',
+    'in',
     // Add other operators that don't need mapping
 ]);

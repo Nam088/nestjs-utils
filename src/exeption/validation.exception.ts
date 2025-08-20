@@ -1,9 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
 
 export interface ValidationErrorItem {
-    property: string;
     constraints: Record<string, string>;
-    value?: any;
+    property: string;
+    value?: unknown;
 }
 
 export class ValidationException extends BadRequestException {

@@ -1,4 +1,5 @@
-import { ValidationPipe, ValidationError } from '@nestjs/common';
+import type { ValidationError } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 
 import { map } from 'lodash';
 
@@ -10,8 +11,8 @@ import { ValidationException } from '../exeption';
  */
 export const validationExceptionFactory = (errors: ValidationError[]) => {
     const customErrors = map(errors, (error) => ({
-        property: String(error.property),
         constraints: error.constraints ? { ...error.constraints } : {},
+        property: String(error.property),
         value: error.value as unknown,
     }));
 
@@ -22,44 +23,44 @@ export const validationExceptionFactory = (errors: ValidationError[]) => {
  * Default validation pipe configuration
  */
 export const validationPipeConfig = new ValidationPipe({
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    forbidUnknownValues: true,
     disableErrorMessages: false,
     exceptionFactory: validationExceptionFactory,
+    forbidNonWhitelisted: true,
+    forbidUnknownValues: true,
+    transform: true,
     validationError: {
         target: false,
         value: false,
     },
+    whitelist: true,
 });
 
 /**
  * Production validation pipe configuration (with sanitized error messages)
  */
 export const productionValidationPipeConfig = new ValidationPipe({
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    forbidUnknownValues: true,
     disableErrorMessages: false,
     exceptionFactory: validationExceptionFactory,
+    forbidNonWhitelisted: true,
+    forbidUnknownValues: true,
+    transform: true,
     validationError: {
         target: false,
         value: false,
     },
+    whitelist: true,
 });
 
 /**
  * Validation pipe options interface
  */
 export interface ValidationPipeOptions {
-    transform?: boolean;
-    whitelist?: boolean;
+    customExceptionFactory?: (errors: ValidationError[]) => unknown;
+    disableErrorMessages?: boolean;
     forbidNonWhitelisted?: boolean;
     forbidUnknownValues?: boolean;
-    disableErrorMessages?: boolean;
-    customExceptionFactory?: (errors: ValidationError[]) => any;
+    transform?: boolean;
+    whitelist?: boolean;
 }
 
 /**
@@ -67,25 +68,25 @@ export interface ValidationPipeOptions {
  */
 export const getValidationPipeConfig = (options: ValidationPipeOptions = {}): ValidationPipe => {
     const {
-        transform = true,
-        whitelist = true,
+        customExceptionFactory,
+        disableErrorMessages = false,
         forbidNonWhitelisted = true,
         forbidUnknownValues = true,
-        disableErrorMessages = false,
-        customExceptionFactory,
+        transform = true,
+        whitelist = true,
     } = options;
 
     const baseConfig: ConstructorParameters<typeof ValidationPipe>[0] = {
-        transform,
-        whitelist,
-        forbidNonWhitelisted,
-        forbidUnknownValues,
         disableErrorMessages,
         exceptionFactory: customExceptionFactory || validationExceptionFactory,
+        forbidNonWhitelisted,
+        forbidUnknownValues,
+        transform,
         validationError: {
             target: false,
             value: false,
         },
+        whitelist,
     };
 
     return new ValidationPipe(baseConfig);

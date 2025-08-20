@@ -1,17 +1,31 @@
+/* eslint-disable security/detect-non-literal-regexp */
+/* eslint-disable max-lines */
+/* eslint-disable max-lines-per-function */
+/* eslint-disable complexity */
 import { applyDecorators } from '@nestjs/common';
+
 import { ApiProperty, type ApiPropertyOptions } from '@nestjs/swagger';
 
-import { Type, Transform } from 'class-transformer';
+import type { ValidationArguments, ValidationOptions } from 'class-validator';
 import {
+    ArrayMaxSize,
+    ArrayMinSize,
+    IsAlphanumeric,
+    IsArray,
+    IsBase64,
     IsBoolean,
     IsDate,
     IsDefined,
     IsEmail,
     IsEnum,
+    IsHexColor,
     IsInt,
+    IsIP,
+    IsJSON,
     IsJWT,
     IsNumber,
     IsOptional,
+    IsPhoneNumber,
     IsPositive,
     IsString,
     IsUrl,
@@ -21,29 +35,36 @@ import {
     Min,
     MinLength,
     NotEquals,
-    ValidateNested,
-    IsArray,
-    ArrayMinSize,
-    ArrayMaxSize,
-    IsPhoneNumber,
-    IsAlphanumeric,
-    IsHexColor,
-    IsIP,
-    IsJSON,
-    IsBase64,
-    ValidationOptions,
-    ValidateIf,
     registerDecorator,
-    ValidationArguments,
+    ValidateIf,
+    ValidateNested,
 } from 'class-validator';
-import { isNil, omit, merge, get, isFunction, isArray, isEmpty, toLower, toUpper, isString, isNumber } from 'lodash';
 
-import { Constructor } from '../types';
+import { Transform, Type } from 'class-transformer';
+
+import {
+    get,
+    isArray,
+    isEmpty,
+    isFunction,
+    isNil,
+    isNumber,
+    isString,
+    merge,
+    omit,
+    set,
+    toLower,
+    toUpper,
+} from 'lodash';
+
+import type { Constructor } from '../types';
 
 export const ToBoolean = (options?: ValidationOptions): PropertyDecorator =>
     Transform(({ value }): boolean => {
         if (value === 'true' || value === true) return true;
+
         if (value === 'false' || value === false) return false;
+
         return value as boolean;
     }, options);
 
@@ -60,6 +81,7 @@ export const IsPassword =
     (pattern?: RegExp | string, validationOptions?: ValidationOptions): PropertyDecorator =>
     (object, propertyName) => {
         let regex: RegExp;
+
         if (pattern) {
             regex = isString(pattern) ? new RegExp(pattern) : pattern;
         } else {
@@ -67,42 +89,80 @@ export const IsPassword =
         }
 
         registerDecorator({
-            propertyName: propertyName as string,
             name: 'isPassword',
-            target: object.constructor,
             constraints: [regex],
             options: validationOptions,
+            propertyName: propertyName as string,
+            target: object.constructor,
             validator: {
-                validate(value: string, validationArguments?: ValidationArguments): boolean {
-                    if (!validationArguments) return false;
-                    const [regexPattern] = validationArguments.constraints as RegExp[];
-                    return regexPattern.test(value);
-                },
                 defaultMessage(validationArguments?: ValidationArguments): string {
                     if (!validationArguments) return '$property must match pattern';
+
                     const [regexPattern] = validationArguments.constraints as RegExp[];
+
                     return `$property must match pattern: ${regexPattern}`;
+                },
+                validate(value: string, validationArguments?: ValidationArguments): boolean {
+                    if (!validationArguments) return false;
+
+                    const [regexPattern] = validationArguments.constraints as RegExp[];
+
+                    return regexPattern.test(value);
                 },
             },
         });
     };
 
 // Enhanced interfaces with better flexibility
+interface IArrayFieldOptions extends IFieldOptions {
+    maxSize?: number;
+    messages?: {
+        [key: string]: string | undefined;
+        invalid?: string;
+        maxSize?: string;
+        minSize?: string;
+        required?: string;
+        uniqueItems?: string;
+    };
+    minSize?: number;
+    uniqueItems?: boolean;
+}
+
+type IBooleanFieldOptions = IFieldOptions;
+
+type IClassFieldOptions = IFieldOptions;
+
+interface IDateFieldOptions extends IFieldOptions {
+    maxDate?: Date;
+    messages?: {
+        [key: string]: string | undefined;
+        invalid?: string;
+        maxDate?: string;
+        minDate?: string;
+        required?: string;
+    };
+    minDate?: Date;
+}
+
+interface IEnumFieldOptions extends IFieldOptions {
+    enumName?: string;
+}
+
 interface IFieldOptions {
     each?: boolean;
-    swagger?: boolean;
-    nullable?: boolean;
     groups?: string[];
-    required?: boolean;
-    transform?: (value: unknown) => unknown;
-    validationOptions?: ValidationOptions;
-    message?: string | ((validationArguments: ValidationArguments) => string);
+    message?: ((validationArguments: ValidationArguments) => string) | string;
     messages?: {
-        required?: string;
+        [key: string]: string | undefined;
         invalid?: string;
         nullable?: string;
-        [key: string]: string | undefined;
+        required?: string;
     };
+    nullable?: boolean;
+    required?: boolean;
+    swagger?: boolean;
+    transform?: (value: unknown) => unknown;
+    validationOptions?: ValidationOptions;
     // Allow custom validation decorators
     customValidators?: PropertyDecorator[];
     // Allow custom transform decorators
@@ -111,82 +171,10 @@ interface IFieldOptions {
     skipDefaultValidation?: boolean;
 }
 
-interface IArrayFieldOptions extends IFieldOptions {
-    minSize?: number;
-    maxSize?: number;
-    uniqueItems?: boolean;
-    messages?: {
-        required?: string;
-        invalid?: string;
-        minSize?: string;
-        maxSize?: string;
-        uniqueItems?: string;
-        [key: string]: string | undefined;
-    };
-}
-
-interface INumberFieldOptions extends IFieldOptions {
-    min?: number;
-    max?: number;
-    int?: boolean;
-    isPositive?: boolean;
-    allowInfinity?: boolean;
-    allowNaN?: boolean;
-    messages?: {
-        required?: string;
-        invalid?: string;
-        min?: string;
-        max?: string;
-        int?: string;
-        positive?: string;
-        [key: string]: string | undefined;
-    };
-}
-
-interface IStringFieldOptions extends IFieldOptions {
-    minLength?: number;
-    maxLength?: number;
-    toLowerCase?: boolean;
-    toUpperCase?: boolean;
-    trim?: boolean;
-    pattern?: RegExp;
-    format?: 'email' | 'url' | 'uuid' | 'phone' | 'alphanumeric' | 'hexColor' | 'ip' | 'json' | 'base64';
-    skipLengthValidation?: boolean;
-    messages?: {
-        required?: string;
-        invalid?: string;
-        minLength?: string;
-        maxLength?: string;
-        pattern?: string;
-        format?: string;
-        email?: string;
-        url?: string;
-        uuid?: string;
-        phone?: string;
-        [key: string]: string | undefined;
-    };
-}
-
-interface IEnumFieldOptions extends IFieldOptions {
-    enumName?: string;
-}
-
-interface IDateFieldOptions extends IFieldOptions {
-    minDate?: Date;
-    maxDate?: Date;
-    messages?: {
-        required?: string;
-        invalid?: string;
-        minDate?: string;
-        maxDate?: string;
-        [key: string]: string | undefined;
-    };
-}
-
 interface IFileFieldOptions extends IFieldOptions {
+    maxFiles?: number;
     maxSize?: number; // in bytes
     mimeTypes?: string[];
-    maxFiles?: number;
 }
 
 interface IGeoFieldOptions extends IFieldOptions {
@@ -194,9 +182,47 @@ interface IGeoFieldOptions extends IFieldOptions {
     longitude?: boolean;
 }
 
-type IBooleanFieldOptions = IFieldOptions;
+interface INumberFieldOptions extends IFieldOptions {
+    allowInfinity?: boolean;
+    allowNaN?: boolean;
+    int?: boolean;
+    isPositive?: boolean;
+    max?: number;
+    messages?: {
+        [key: string]: string | undefined;
+        int?: string;
+        invalid?: string;
+        max?: string;
+        min?: string;
+        positive?: string;
+        required?: string;
+    };
+    min?: number;
+}
+interface IStringFieldOptions extends IFieldOptions {
+    format?: 'alphanumeric' | 'base64' | 'email' | 'hexColor' | 'ip' | 'json' | 'phone' | 'url' | 'uuid';
+    maxLength?: number;
+    messages?: {
+        [key: string]: string | undefined;
+        email?: string;
+        format?: string;
+        invalid?: string;
+        maxLength?: string;
+        minLength?: string;
+        pattern?: string;
+        phone?: string;
+        required?: string;
+        url?: string;
+        uuid?: string;
+    };
+    minLength?: number;
+    pattern?: RegExp;
+    skipLengthValidation?: boolean;
+    toLowerCase?: boolean;
+    toUpperCase?: boolean;
+    trim?: boolean;
+}
 type ITokenFieldOptions = IFieldOptions;
-type IClassFieldOptions = IFieldOptions;
 
 // Enhanced helper functions
 export const addConditionalDecorator = (
@@ -220,8 +246,8 @@ export const createValidationOptions = (
     let message: string | undefined = defaultMessage;
 
     // Priority: specific message > messages object > general message > validationOptions.message > default
-    if (messageKey && options.messages && options.messages[messageKey]) {
-        message = options.messages[messageKey];
+    if (messageKey && options.messages && get(options.messages, messageKey)) {
+        message = get(options.messages, messageKey);
     } else if (options.message) {
         message = isFunction(options.message) ? undefined : options.message;
     } else if (validationOptions.message) {
@@ -230,8 +256,8 @@ export const createValidationOptions = (
 
     return {
         each,
-        message,
         groups: options.groups,
+        message,
         ...validationOptions,
     };
 };
@@ -241,6 +267,7 @@ export const addCustomDecorators = (decorators: PropertyDecorator[], options: IF
     if (options.customValidators) {
         decorators.push(...options.customValidators);
     }
+
     if (options.customTransforms) {
         decorators.push(...options.customTransforms);
     }
@@ -249,9 +276,11 @@ export const addCustomDecorators = (decorators: PropertyDecorator[], options: IF
 export const handleNullableAndRequired = (decorators: PropertyDecorator[], options: IFieldOptions): void => {
     if (get(options, 'nullable', false)) {
         const nullableOptions = createValidationOptions(options, 'nullable', '$property cannot be null');
+
         decorators.push(IsNullable(nullableOptions));
     } else {
         const notNullOptions = createValidationOptions(options, 'required', '$property should not be null');
+
         decorators.push(NotEquals(null, notNullOptions));
     }
 };
@@ -312,7 +341,7 @@ export const addTransformDecorator = (decorators: PropertyDecorator[], options: 
 
 // Enhanced NumberField with more options
 export const NumberField = (
-    options: Omit<ApiPropertyOptions, 'type'> & INumberFieldOptions = {},
+    options: INumberFieldOptions & Omit<ApiPropertyOptions, 'type'> = {},
 ): PropertyDecorator => {
     const decorators = [Type(() => Number)];
 
@@ -325,15 +354,17 @@ export const NumberField = (
 
         // Enhanced number validation
         const numberOptions = {
-            allowNaN: get(options, 'allowNaN', false),
             allowInfinity: get(options, 'allowInfinity', false),
+            allowNaN: get(options, 'allowNaN', false),
         };
 
         if (get(options, 'int', false)) {
             const intOptions = createValidationOptions(options, 'int', '$property must be an integer number');
+
             decorators.push(IsInt(intOptions));
         } else {
             const numberValidationOptions = createValidationOptions(options, 'invalid', '$property must be a number');
+
             decorators.push(IsNumber(numberOptions, numberValidationOptions));
         }
 
@@ -343,6 +374,7 @@ export const NumberField = (
                 'min',
                 `$property must not be less than ${options.min}`,
             );
+
             decorators.push(Min(options.min, minOptions));
         }
 
@@ -352,11 +384,13 @@ export const NumberField = (
                 'max',
                 `$property must not be greater than ${options.max}`,
             );
+
             decorators.push(Max(options.max, maxOptions));
         }
 
         if (get(options, 'isPositive', false)) {
             const positiveOptions = createValidationOptions(options, 'positive', '$property must be a positive number');
+
             decorators.push(IsPositive(positiveOptions));
         }
     }
@@ -367,15 +401,15 @@ export const NumberField = (
 };
 
 export const NumberFieldOptional = (
-    options: Omit<ApiPropertyOptions, 'type' | 'required'> & INumberFieldOptions = {},
+    options: INumberFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), NumberField(mergedOptions));
 };
 
-// Enhanced StringField with format validation
 export const StringField = (
-    options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
+    options: IStringFieldOptions & Omit<ApiPropertyOptions, 'type'> = {},
 ): PropertyDecorator => {
     const decorators = [Type(() => String)];
 
@@ -384,6 +418,7 @@ export const StringField = (
 
     if (!get(options, 'skipDefaultValidation', false)) {
         const stringOptions = createValidationOptions(options, 'invalid', '$property must be a string');
+
         decorators.push(IsString(stringOptions));
 
         handleNullableAndRequired(decorators, options);
@@ -405,6 +440,7 @@ export const StringField = (
                 'minLength',
                 `$property must be longer than or equal to ${minLength} characters`,
             );
+
             decorators.push(MinLength(minLength, minLengthOptions));
 
             if (!isNil(options.maxLength)) {
@@ -413,6 +449,7 @@ export const StringField = (
                     'maxLength',
                     `$property must be shorter than or equal to ${options.maxLength} characters`,
                 );
+
                 decorators.push(MaxLength(options.maxLength, maxLengthOptions));
             }
         }
@@ -424,6 +461,7 @@ export const StringField = (
                 'pattern',
                 '$property must match the required pattern',
             );
+
             decorators.push(
                 Transform(({ value }): string => {
                     if (isString(value) && options.pattern && !options.pattern.test(value)) {
@@ -431,6 +469,7 @@ export const StringField = (
                             (patternOptions.message as string) || `${value} does not match pattern ${options.pattern}`,
                         );
                     }
+
                     return value;
                 }),
             );
@@ -438,59 +477,19 @@ export const StringField = (
 
         // Format-specific validation
         const format = get(options, 'format');
+
         switch (format) {
-            case 'email': {
-                const emailOptions = createValidationOptions(options, 'email', '$property must be a valid email');
-                decorators.push(IsEmail({}, emailOptions));
-                break;
-            }
-            case 'url': {
-                const urlOptions = createValidationOptions(options, 'url', '$property must be a valid URL');
-                decorators.push(IsUrl({}, urlOptions));
-                break;
-            }
-            case 'uuid': {
-                const uuidOptions = createValidationOptions(options, 'uuid', '$property must be a valid UUID');
-                decorators.push(IsUUID('4', uuidOptions));
-                break;
-            }
-            case 'phone': {
-                const phoneOptions = createValidationOptions(
-                    options,
-                    'phone',
-                    '$property must be a valid phone number',
-                );
-                decorators.push(IsPhoneNumber(undefined, phoneOptions));
-                break;
-            }
             case 'alphanumeric': {
                 const alphanumericOptions = createValidationOptions(
                     options,
                     'format',
                     '$property must contain only letters and numbers',
                 );
+
                 decorators.push(IsAlphanumeric(undefined, alphanumericOptions));
                 break;
             }
-            case 'hexColor': {
-                const hexColorOptions = createValidationOptions(
-                    options,
-                    'format',
-                    '$property must be a valid hex color',
-                );
-                decorators.push(IsHexColor(hexColorOptions));
-                break;
-            }
-            case 'ip': {
-                const ipOptions = createValidationOptions(options, 'format', '$property must be a valid IP address');
-                decorators.push(IsIP(undefined, ipOptions));
-                break;
-            }
-            case 'json': {
-                const jsonOptions = createValidationOptions(options, 'format', '$property must be a valid JSON string');
-                decorators.push(IsJSON(jsonOptions));
-                break;
-            }
+
             case 'base64': {
                 const base64ValidationOptions = createValidationOptions(
                     options,
@@ -498,11 +497,69 @@ export const StringField = (
                     '$property must be a valid base64 string',
                 );
                 const base64Options = {
-                    urlSafe: false,
                     paddingRequired: true,
+                    urlSafe: false,
                     ...base64ValidationOptions,
                 };
+
                 decorators.push(IsBase64(base64Options));
+                break;
+            }
+
+            case 'email': {
+                const emailOptions = createValidationOptions(options, 'email', '$property must be a valid email');
+
+                decorators.push(IsEmail({}, emailOptions));
+                break;
+            }
+
+            case 'hexColor': {
+                const hexColorOptions = createValidationOptions(
+                    options,
+                    'format',
+                    '$property must be a valid hex color',
+                );
+
+                decorators.push(IsHexColor(hexColorOptions));
+                break;
+            }
+
+            case 'ip': {
+                const ipOptions = createValidationOptions(options, 'format', '$property must be a valid IP address');
+
+                decorators.push(IsIP(undefined, ipOptions));
+                break;
+            }
+
+            case 'json': {
+                const jsonOptions = createValidationOptions(options, 'format', '$property must be a valid JSON string');
+
+                decorators.push(IsJSON(jsonOptions));
+                break;
+            }
+
+            case 'phone': {
+                const phoneOptions = createValidationOptions(
+                    options,
+                    'phone',
+                    '$property must be a valid phone number',
+                );
+
+                decorators.push(IsPhoneNumber(undefined, phoneOptions));
+                break;
+            }
+
+            case 'url': {
+                const urlOptions = createValidationOptions(options, 'url', '$property must be a valid URL');
+
+                decorators.push(IsUrl({}, urlOptions));
+                break;
+            }
+
+            case 'uuid': {
+                const uuidOptions = createValidationOptions(options, 'uuid', '$property must be a valid UUID');
+
+                decorators.push(IsUUID('4', uuidOptions));
                 break;
             }
         }
@@ -516,13 +573,14 @@ export const StringField = (
 };
 
 export const StringFieldOptional = (
-    options: Omit<ApiPropertyOptions, 'type' | 'required'> & IStringFieldOptions = {},
+    options: IStringFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), StringField(mergedOptions));
 };
 
-export const TokenField = (options: Omit<ApiPropertyOptions, 'type'> & ITokenFieldOptions = {}): PropertyDecorator => {
+export const TokenField = (options: ITokenFieldOptions & Omit<ApiPropertyOptions, 'type'> = {}): PropertyDecorator => {
     const decorators = [Type(() => String)];
     const isEach = get(options, 'each', false);
 
@@ -537,15 +595,16 @@ export const TokenField = (options: Omit<ApiPropertyOptions, 'type'> & ITokenFie
 };
 
 export const TokenFieldOptional = (
-    options: Omit<ApiPropertyOptions, 'type' | 'required'> & ITokenFieldOptions = {},
+    options: ITokenFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), TokenField(mergedOptions));
 };
 
 export const PasswordField = (
     pattern?: RegExp | string,
-    options: Omit<ApiPropertyOptions, 'type' | 'minLength'> & IStringFieldOptions = {},
+    options: IStringFieldOptions & Omit<ApiPropertyOptions, 'minLength' | 'type'> = {},
 ): PropertyDecorator => {
     const passwordOptions = merge({ minLength: 6 }, options);
     const decorators = [StringField(passwordOptions), IsPassword(pattern, get(options, 'validationOptions', {}))];
@@ -556,14 +615,15 @@ export const PasswordField = (
 };
 
 export const PasswordFieldOptional = (
-    options: Omit<ApiPropertyOptions, 'type' | 'required' | 'minLength'> & IStringFieldOptions = {},
+    options: IStringFieldOptions & Omit<ApiPropertyOptions, 'minLength' | 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), PasswordField(undefined, mergedOptions));
 };
 
 export const BooleanField = (
-    options: Omit<ApiPropertyOptions, 'type'> & IBooleanFieldOptions = {},
+    options: IBooleanFieldOptions & Omit<ApiPropertyOptions, 'type'> = {},
 ): PropertyDecorator => {
     const decorators = [ToBoolean(), IsBoolean()];
 
@@ -574,13 +634,14 @@ export const BooleanField = (
 };
 
 export const BooleanFieldOptional = (
-    options: Omit<ApiPropertyOptions, 'type' | 'required'> & IBooleanFieldOptions = {},
+    options: IBooleanFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), BooleanField(mergedOptions));
 };
 
-export const EmailField = (options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {}): PropertyDecorator => {
+export const EmailField = (options: IStringFieldOptions & Omit<ApiPropertyOptions, 'type'> = {}): PropertyDecorator => {
     const emailOptions = merge({ toLowerCase: true }, options);
     const decorators = [IsEmail(), StringField(emailOptions)];
 
@@ -590,14 +651,15 @@ export const EmailField = (options: Omit<ApiPropertyOptions, 'type'> & IStringFi
 };
 
 export const EmailFieldOptional = (
-    options: Omit<ApiPropertyOptions, 'type' | 'required'> & IStringFieldOptions = {},
+    options: IStringFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), EmailField(mergedOptions));
 };
 
 export const UUIDField = (
-    options: Omit<ApiPropertyOptions, 'type' | 'format' | 'isArray'> & IFieldOptions = {},
+    options: IFieldOptions & Omit<ApiPropertyOptions, 'format' | 'isArray' | 'type'> = {},
 ): PropertyDecorator => {
     const decorators = [Type(() => String)];
     const isEach = get(options, 'each', false);
@@ -614,13 +676,14 @@ export const UUIDField = (
 };
 
 export const UUIDFieldOptional = (
-    options: Omit<ApiPropertyOptions, 'type' | 'required' | 'isArray'> & IFieldOptions = {},
+    options: IFieldOptions & Omit<ApiPropertyOptions, 'isArray' | 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), UUIDField(mergedOptions));
 };
 
-export const URLField = (options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {}): PropertyDecorator => {
+export const URLField = (options: IStringFieldOptions & Omit<ApiPropertyOptions, 'type'> = {}): PropertyDecorator => {
     const decorators = [StringField(options)];
     const isEach = get(options, 'each', false);
 
@@ -631,16 +694,17 @@ export const URLField = (options: Omit<ApiPropertyOptions, 'type'> & IStringFiel
 };
 
 export const URLFieldOptional = (
-    options: Omit<ApiPropertyOptions, 'type' | 'required'> & IStringFieldOptions = {},
+    options: IStringFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), URLField(mergedOptions));
 };
 
 // New ArrayField decorator
 export const ArrayField = <_T>(
     itemType: () => Constructor,
-    options: Omit<ApiPropertyOptions, 'type' | 'isArray'> & IArrayFieldOptions = {},
+    options: IArrayFieldOptions & Omit<ApiPropertyOptions, 'isArray' | 'type'> = {},
 ): PropertyDecorator => {
     const decorators = [Type(() => itemType()), IsArray(get(options, 'validationOptions', {}))];
 
@@ -670,6 +734,7 @@ export const ArrayField = <_T>(
                 if (isArray(value)) {
                     return [...new Set(value)];
                 }
+
                 return value as unknown[];
             }),
         );
@@ -680,14 +745,15 @@ export const ArrayField = <_T>(
 
 export const ArrayFieldOptional = <_T>(
     itemType: () => Constructor,
-    options: Omit<ApiPropertyOptions, 'type' | 'required' | 'isArray'> & IArrayFieldOptions = {},
+    options: IArrayFieldOptions & Omit<ApiPropertyOptions, 'isArray' | 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional(get(options, 'validationOptions', {})), ArrayField(itemType, mergedOptions));
 };
 
 // Enhanced DateField with min/max date validation
-export const DateField = (options: Omit<ApiPropertyOptions, 'type'> & IDateFieldOptions = {}): PropertyDecorator => {
+export const DateField = (options: IDateFieldOptions & Omit<ApiPropertyOptions, 'type'> = {}): PropertyDecorator => {
     const decorators = [Type(() => Date), IsDate(get(options, 'validationOptions', {}))];
 
     handleNullableAndRequired(decorators, options);
@@ -701,6 +767,7 @@ export const DateField = (options: Omit<ApiPropertyOptions, 'type'> & IDateField
                 if (value instanceof Date && options.minDate) {
                     return value >= options.minDate ? value : undefined;
                 }
+
                 return value;
             }),
         );
@@ -712,6 +779,7 @@ export const DateField = (options: Omit<ApiPropertyOptions, 'type'> & IDateField
                 if (value instanceof Date && options.maxDate) {
                     return value <= options.maxDate ? value : undefined;
                 }
+
                 return value;
             }),
         );
@@ -721,15 +789,16 @@ export const DateField = (options: Omit<ApiPropertyOptions, 'type'> & IDateField
 };
 
 export const DateFieldOptional = (
-    options: Omit<ApiPropertyOptions, 'type' | 'required'> & IDateFieldOptions = {},
+    options: IDateFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), DateField(mergedOptions));
 };
 
 export const EnumField = <TEnum extends object>(
     getEnum: () => TEnum,
-    options: Omit<ApiPropertyOptions, 'type' | 'enum' | 'isArray'> & IEnumFieldOptions = {},
+    options: IEnumFieldOptions & Omit<ApiPropertyOptions, 'enum' | 'isArray' | 'type'> = {},
 ): PropertyDecorator => {
     const decorators = [];
     const isEach = get(options, 'each', false);
@@ -742,6 +811,7 @@ export const EnumField = <TEnum extends object>(
 
     if (get(options, 'swagger', true) !== false) {
         const enumName = get(options, 'enumName') || getVariableName(getEnum);
+
         addSwaggerDecorator(decorators, options as Record<string, unknown>, undefined, {
             enum: getEnum(),
             enumName,
@@ -754,15 +824,16 @@ export const EnumField = <TEnum extends object>(
 
 export const EnumFieldOptional = <TEnum extends object>(
     getEnum: () => TEnum,
-    options: Omit<ApiPropertyOptions, 'type' | 'required' | 'enum'> & IEnumFieldOptions = {},
+    options: IEnumFieldOptions & Omit<ApiPropertyOptions, 'enum' | 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), EnumField(getEnum, mergedOptions));
 };
 
 export const ClassField = <TClass extends Constructor>(
     getClass: () => TClass,
-    options: Omit<ApiPropertyOptions, 'type'> & IClassFieldOptions = {},
+    options: IClassFieldOptions & Omit<ApiPropertyOptions, 'type'> = {},
 ): PropertyDecorator => {
     const decorators = [];
     const isEach = get(options, 'each', false);
@@ -775,6 +846,7 @@ export const ClassField = <TClass extends Constructor>(
     }
 
     const isRequired = get(options, 'required', true);
+
     if (isRequired) {
         decorators.push(IsDefined());
     }
@@ -788,16 +860,17 @@ export const ClassField = <TClass extends Constructor>(
 
 export const ClassFieldOptional = <TClass extends Constructor>(
     getClass: () => TClass,
-    options: Omit<ApiPropertyOptions, 'type' | 'required'> & IClassFieldOptions = {},
+    options: IClassFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), ClassField(getClass, mergedOptions));
 };
 
 // Phone number field
 export const PhoneField = (
     country?: string,
-    options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
+    options: IStringFieldOptions & Omit<ApiPropertyOptions, 'type'> = {},
 ): PropertyDecorator => {
     const decorators = [Type(() => String), IsPhoneNumber(country as never, get(options, 'validationOptions', {}))];
 
@@ -813,14 +886,15 @@ export const PhoneField = (
 
 export const PhoneFieldOptional = (
     country?: string,
-    options: Omit<ApiPropertyOptions, 'type' | 'required'> & IStringFieldOptions = {},
+    options: IStringFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional(get(options, 'validationOptions', {})), PhoneField(country, mergedOptions));
 };
 
 // JSON field
-export const JsonField = (options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {}): PropertyDecorator => {
+export const JsonField = (options: IStringFieldOptions & Omit<ApiPropertyOptions, 'type'> = {}): PropertyDecorator => {
     const decorators = [Type(() => String), IsJSON(get(options, 'validationOptions', {}))];
 
     handleNullableAndRequired(decorators, options);
@@ -831,9 +905,10 @@ export const JsonField = (options: Omit<ApiPropertyOptions, 'type'> & IStringFie
 };
 
 export const JsonFieldOptional = (
-    options: Omit<ApiPropertyOptions, 'type' | 'required'> & IStringFieldOptions = {},
+    options: IStringFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional(get(options, 'validationOptions', {})), JsonField(mergedOptions));
 };
 
@@ -848,7 +923,8 @@ export const ConditionalField =
             if (!condition(obj as T)) {
                 return undefined;
             }
-            return (obj as Record<string | symbol, unknown>)[propertyKey];
+
+            return get(obj as Record<string | symbol, unknown>, propertyKey);
         })(target, propertyKey);
     };
 
@@ -863,13 +939,16 @@ export const getVariableName = (variableFunction: () => unknown): string => {
 
         // Handle arrow functions and regular functions
         let name = '';
+
         if (functionString.includes('=>')) {
             // Arrow function: () => MyEnum
             const match = functionString.match(/=>\s*(\w+)/);
+
             name = match ? match[1] : '';
         } else {
             // Regular function
             const parts = functionString.split('.');
+
             name = parts.pop() || '';
         }
 
@@ -890,10 +969,10 @@ export const createCustomValidator =
     (object: object, propertyName: string | symbol) => {
         registerDecorator({
             name: validatorName,
-            target: (object as { constructor: new (...args: unknown[]) => unknown }).constructor,
-            propertyName: propertyName as string,
             constraints: constraints || [],
             options: { message: defaultMessage || `$property failed ${validatorName} validation` },
+            propertyName: propertyName as string,
+            target: (object as { constructor: new (...args: unknown[]) => unknown }).constructor,
             validator: {
                 validate(value: unknown, args?: ValidationArguments): boolean {
                     return validationFunction(value, args?.constraints as unknown[]);
@@ -914,7 +993,7 @@ export const createFlexibleField =
         defaultValidators: PropertyDecorator[] = [],
         defaultOptions: Partial<IFieldOptions> = {},
     ) =>
-    (options: Omit<ApiPropertyOptions, 'type'> & IFieldOptions = {}) => {
+    (options: IFieldOptions & Omit<ApiPropertyOptions, 'type'> = {}) => {
         const mergedOptions = merge(defaultOptions, options);
         const decorators = [Type(baseType)];
 
@@ -934,7 +1013,7 @@ export const createFlexibleField =
     };
 
 // Message builder utility
-export const buildValidationMessage = (template: string, replacements: Record<string, any> = {}): string =>
+export const buildValidationMessage = (template: string, replacements: Record<string, unknown> = {}): string =>
     Object.entries(replacements).reduce(
         (message, [key, value]) => message.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value)),
         template,
@@ -945,30 +1024,15 @@ export class ValidationRuleBuilder {
     private decorators: PropertyDecorator[] = [];
     private options: IFieldOptions = {};
 
-    static create(): ValidationRuleBuilder {
-        return new ValidationRuleBuilder();
+    addTransform(transform: PropertyDecorator): this {
+        this.decorators.push(transform);
+
+        return this;
     }
 
     addValidator(validator: PropertyDecorator): this {
         this.decorators.push(validator);
-        return this;
-    }
 
-    addTransform(transform: PropertyDecorator): this {
-        this.decorators.push(transform);
-        return this;
-    }
-
-    setMessage(key: string, message: string): this {
-        if (!this.options.messages) {
-            this.options.messages = {};
-        }
-        this.options.messages[key] = message;
-        return this;
-    }
-
-    setOption<K extends keyof IFieldOptions>(key: K, value: IFieldOptions[K]): this {
-        this.options[key] = value;
         return this;
     }
 
@@ -979,8 +1043,29 @@ export class ValidationRuleBuilder {
         };
     }
 
+    static create(): ValidationRuleBuilder {
+        return new ValidationRuleBuilder();
+    }
+
+    setMessage(key: string, message: string): this {
+        if (!this.options.messages) {
+            this.options.messages = {};
+        }
+
+        set(this.options.messages, key, message);
+
+        return this;
+    }
+
+    setOption<K extends keyof IFieldOptions>(key: K, value: IFieldOptions[K]): this {
+        set(this.options, key, value);
+
+        return this;
+    }
+
     apply(): PropertyDecorator {
         const { decorators } = this.build();
+
         return applyDecorators(...decorators);
     }
 }
@@ -988,21 +1073,21 @@ export class ValidationRuleBuilder {
 // Export utility functions for advanced usage
 export const FieldUtils = {
     addConditionalDecorator,
-    handleNullableAndRequired,
+    addCustomDecorators,
     addSwaggerDecorator,
     addTransformDecorator,
-    addCustomDecorators,
-    getVariableName,
-    createValidationOptions,
-    createCustomValidator,
-    createCustomTransform,
-    createFlexibleField,
     buildValidationMessage,
+    createCustomTransform,
+    createCustomValidator,
+    createFlexibleField,
+    createValidationOptions,
+    getVariableName,
+    handleNullableAndRequired,
     ValidationRuleBuilder,
 };
 
 // File validation decorator
-export const FileField = (options: Omit<ApiPropertyOptions, 'type'> & IFileFieldOptions = {}): PropertyDecorator => {
+export const FileField = (options: IFileFieldOptions & Omit<ApiPropertyOptions, 'type'> = {}): PropertyDecorator => {
     const decorators = [Type(() => String)];
 
     // File size validation
@@ -1012,6 +1097,7 @@ export const FileField = (options: Omit<ApiPropertyOptions, 'type'> & IFileField
                 if (value && (value as { size: number }).size > options.maxSize!) {
                     throw new Error(`File size exceeds ${options.maxSize} bytes`);
                 }
+
                 return value as { size: number };
             }),
         );
@@ -1024,6 +1110,7 @@ export const FileField = (options: Omit<ApiPropertyOptions, 'type'> & IFileField
                 if (value && !options.mimeTypes!.includes((value as { mimetype: string }).mimetype)) {
                     throw new Error(`Invalid file type. Allowed: ${options.mimeTypes!.join(', ')}`);
                 }
+
                 return value as { mimetype: string };
             }),
         );
@@ -1031,22 +1118,23 @@ export const FileField = (options: Omit<ApiPropertyOptions, 'type'> & IFileField
 
     handleNullableAndRequired(decorators, options);
     addSwaggerDecorator(decorators, options as Record<string, unknown>, 'string', {
-        format: 'binary',
         type: 'file',
+        format: 'binary',
     });
 
     return applyDecorators(...decorators);
 };
 
 export const FileFieldOptional = (
-    options: Omit<ApiPropertyOptions, 'type' | 'required'> & IFileFieldOptions = {},
+    options: IFileFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), FileField(mergedOptions));
 };
 
 // Geographic coordinates validation
-export const GeoField = (options: Omit<ApiPropertyOptions, 'type'> & IGeoFieldOptions = {}): PropertyDecorator => {
+export const GeoField = (options: IGeoFieldOptions & Omit<ApiPropertyOptions, 'type'> = {}): PropertyDecorator => {
     const decorators = [Type(() => Number)];
 
     // Latitude validation (-90 to 90)
@@ -1056,6 +1144,7 @@ export const GeoField = (options: Omit<ApiPropertyOptions, 'type'> & IGeoFieldOp
                 if (isNumber(value) && (value < -90 || value > 90)) {
                     throw new Error('Latitude must be between -90 and 90');
                 }
+
                 return value as number;
             }),
         );
@@ -1068,6 +1157,7 @@ export const GeoField = (options: Omit<ApiPropertyOptions, 'type'> & IGeoFieldOp
                 if (isNumber(value) && (value < -180 || value > 180)) {
                     throw new Error('Longitude must be between -180 and 180');
                 }
+
                 return value as number;
             }),
         );
@@ -1080,15 +1170,16 @@ export const GeoField = (options: Omit<ApiPropertyOptions, 'type'> & IGeoFieldOp
 };
 
 export const GeoFieldOptional = (
-    options: Omit<ApiPropertyOptions, 'type' | 'required'> & IGeoFieldOptions = {},
+    options: IGeoFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), GeoField(mergedOptions));
 };
 
 // Credit card validation
 export const CreditCardField = (
-    options: Omit<ApiPropertyOptions, 'type'> & IStringFieldOptions = {},
+    options: IStringFieldOptions & Omit<ApiPropertyOptions, 'type'> = {},
 ): PropertyDecorator => {
     const decorators = [Type(() => String)];
 
@@ -1097,6 +1188,7 @@ export const CreditCardField = (
         Transform(({ value }): string => {
             if (isString(value)) {
                 const digits = value.replace(/\D/g, '');
+
                 if (digits.length < 13 || digits.length > 19) {
                     throw new Error('Invalid credit card number length');
                 }
@@ -1104,12 +1196,16 @@ export const CreditCardField = (
                 // Luhn algorithm
                 let sum = 0;
                 let isEven = false;
+
                 for (let i = digits.length - 1; i >= 0; i--) {
-                    let digit = parseInt(digits[i]);
+                    let digit = parseInt(get(digits, i));
+
                     if (isEven) {
                         digit *= 2;
+
                         if (digit > 9) digit -= 9;
                     }
+
                     sum += digit;
                     isEven = !isEven;
                 }
@@ -1118,29 +1214,31 @@ export const CreditCardField = (
                     throw new Error('Invalid credit card number');
                 }
             }
+
             return value as string;
         }),
     );
 
     handleNullableAndRequired(decorators, options);
     addSwaggerDecorator(decorators, options as Record<string, unknown>, String, {
-        example: '4111111111111111',
         description: 'Credit card number (will be validated using Luhn algorithm)',
+        example: '4111111111111111',
     });
 
     return applyDecorators(...decorators);
 };
 
 export const CreditCardFieldOptional = (
-    options: Omit<ApiPropertyOptions, 'type' | 'required'> & IStringFieldOptions = {},
+    options: IStringFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), CreditCardField(mergedOptions));
 };
 
 // Currency field with validation
 export const CurrencyField = (
-    options: Omit<ApiPropertyOptions, 'type'> & INumberFieldOptions = {},
+    options: INumberFieldOptions & Omit<ApiPropertyOptions, 'type'> = {},
 ): PropertyDecorator => {
     const decorators = [Type(() => Number)];
 
@@ -1151,26 +1249,29 @@ export const CurrencyField = (
                 if (value < 0) {
                     throw new Error('Currency amount cannot be negative');
                 }
+
                 // Round to 2 decimal places
                 return Math.round(value * 100) / 100;
             }
+
             return value as number;
         }),
     );
 
     handleNullableAndRequired(decorators, options);
     addSwaggerDecorator(decorators, options as Record<string, unknown>, Number, {
-        example: 99.99,
         description: 'Currency amount (will be rounded to 2 decimal places)',
+        example: 99.99,
     });
 
     return applyDecorators(...decorators);
 };
 
 export const CurrencyFieldOptional = (
-    options: Omit<ApiPropertyOptions, 'type' | 'required'> & INumberFieldOptions = {},
+    options: INumberFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'> = {},
 ): PropertyDecorator => {
     const mergedOptions = merge({ required: false }, options);
+
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), CurrencyField(mergedOptions));
 };
 

@@ -1,147 +1,156 @@
-import { applyDecorators, Type, HttpStatus, SetMetadata } from '@nestjs/common';
+/* eslint-disable sonarjs/cognitive-complexity */
+/* eslint-disable sonarjs/no-identical-functions */
+/* eslint-disable max-lines */
+/* eslint-disable complexity */
+/* eslint-disable max-lines-per-function */
+import type { Type } from '@nestjs/common';
+import { applyDecorators, HttpStatus, SetMetadata } from '@nestjs/common';
+
+import type { ApiParamOptions } from '@nestjs/swagger';
 import {
-    ApiBearerAuth,
-    ApiForbiddenResponse,
-    ApiOperation,
-    ApiResponse,
-    ApiUnauthorizedResponse,
+    ApiBadRequestResponse,
     ApiBasicAuth,
+    ApiBearerAuth,
+    ApiBody,
+    ApiConflictResponse,
+    ApiConsumes,
     ApiCookieAuth,
+    ApiForbiddenResponse,
+    ApiHeader,
+    ApiInternalServerErrorResponse,
+    ApiNotFoundResponse,
     ApiOAuth2,
+    ApiOperation,
+    ApiParam,
+    ApiProduces,
+    ApiQuery,
+    ApiResponse,
     ApiSecurity,
     ApiTags,
-    ApiBody,
-    ApiQuery,
-    ApiParam,
-    ApiParamOptions,
-    ApiHeader,
-    ApiConsumes,
-    ApiProduces,
-    ApiBadRequestResponse,
-    ApiNotFoundResponse,
-    ApiConflictResponse,
-    ApiInternalServerErrorResponse,
     ApiTooManyRequestsResponse,
+    ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
-import { map, isEmpty, isArray, keyBy, mapValues, isNumber } from 'lodash';
+import { get, isArray, isEmpty, isNumber, keyBy, map, mapValues, set } from 'lodash';
 
 import { AUTH_TYPE } from '../constants';
-import { PaginationType, PAGINATION_TYPE } from '../constants/pagination.constants';
+import { PAGINATION_TYPE } from '../constants/pagination.constants';
 import { ApiResponseDto } from '../dto/api.response.dto';
 import { ErrorResponseDto } from '../dto/error.response.dto';
-import { ApiPaginatedResponseDto, ApiCursorPaginatedResponseDto } from '../dto/paginated.response.dto';
+import { ApiCursorPaginatedResponseDto, ApiPaginatedResponseDto } from '../dto/paginated.response.dto';
+
+import type { PaginationType } from '../constants/pagination.constants';
 
 // --- Enhanced Types for configuration ---
 /**
  * Individual authentication configurations
  */
-interface JwtAuthConfig {
-    type: typeof AUTH_TYPE.JWT;
-    provider?: string; // Name of the JWT provider
-    required?: boolean;
-}
-
 interface ApiKeyAuthConfig {
-    type: typeof AUTH_TYPE.API_KEY;
     provider?: string; // Name of the API Key provider
     required?: boolean;
-}
-
-interface OAuth2AuthConfig {
-    type: typeof AUTH_TYPE.OAUTH2;
-    scopes?: string[];
-    provider?: string; // Name of the OAuth2 provider
-    required?: boolean;
+    type: typeof AUTH_TYPE.API_KEY;
 }
 
 interface BasicAuthConfig {
-    type: typeof AUTH_TYPE.BASIC;
     required?: boolean;
+    type: typeof AUTH_TYPE.BASIC;
 }
 
 interface CookieAuthConfig {
-    type: typeof AUTH_TYPE.COOKIE;
     name?: string;
     required?: boolean;
+    type: typeof AUTH_TYPE.COOKIE;
+}
+
+interface JwtAuthConfig {
+    provider?: string; // Name of the JWT provider
+    required?: boolean;
+    type: typeof AUTH_TYPE.JWT;
+}
+
+interface OAuth2AuthConfig {
+    provider?: string; // Name of the OAuth2 provider
+    required?: boolean;
+    scopes?: string[];
+    type: typeof AUTH_TYPE.OAUTH2;
 }
 
 /**
  * Union type for all auth configurations
  */
-type AuthConfig = JwtAuthConfig | ApiKeyAuthConfig | OAuth2AuthConfig | BasicAuthConfig | CookieAuthConfig;
+type AuthConfig = ApiKeyAuthConfig | BasicAuthConfig | CookieAuthConfig | JwtAuthConfig | OAuth2AuthConfig;
 
 /**
  * Custom error response configuration
  */
 interface CustomErrorConfig {
-    status: HttpStatus;
     description?: string;
-    type?: Type<any>;
-    examples?: Record<string, any>;
+    examples?: Record<string, unknown>;
+    status: HttpStatus;
+    type?: Type<unknown>;
 }
 
 /**
  * Request body configuration
  */
 interface BodyConfig {
-    type?: Type<any>;
     description?: string;
+    examples?: Record<string, unknown>;
+    files?: { description?: string; isArray?: boolean; name: string; required?: boolean }[];
     required?: boolean;
-    examples?: Record<string, any>;
-    files?: { name: string; description?: string; required?: boolean; isArray?: boolean }[];
+    type?: Type<unknown>;
 }
 
 /**
  * Query parameter configuration
  */
 interface QueryConfig {
-    name: string;
-    type?: 'string' | 'number' | 'boolean' | 'array';
     description?: string;
+    enum?: unknown[];
+    example?: unknown;
+    name: string;
     required?: boolean;
-    example?: any;
-    enum?: any[];
+    type?: 'array' | 'boolean' | 'number' | 'string';
 }
 
 /**
  * Path parameter configuration
  */
 interface ParamConfig {
-    name: string;
-    type?: 'string' | 'number' | 'uuid';
     description?: string;
-    example?: any;
+    example?: number | string;
     format?: string;
+    name: string;
+    type?: 'number' | 'string' | 'uuid';
 }
 
 /**
  * Header configuration
  */
 interface HeaderConfig {
-    name: string;
     description?: string;
-    required?: boolean;
     example?: string;
+    name: string;
+    required?: boolean;
 }
 
 /**
  * Response configuration with multiple status codes
  */
 interface ResponseConfig<T> {
-    type: Type<T> | null;
     description?: string;
-    examples?: Record<string, any>;
-    headers?: Record<string, any>;
+    examples?: Record<string, unknown>;
+    headers?: Record<string, unknown>;
     isArray?: boolean;
+    type: null | Type<T>;
 }
 
 /**
  * Validation error example configuration
  */
 interface ValidationErrorExample {
-    field: string;
     constraint: string;
+    field: string;
     message: string;
 }
 
@@ -150,56 +159,56 @@ interface ValidationErrorExample {
  */
 interface ApiEndpointOptions<T> {
     // Basic configuration
-    summary: string;
-    description?: string;
-    tags?: string | string[];
     deprecated?: boolean;
+    description?: string;
+    summary: string;
+    tags?: string | string[];
 
     // Response configuration
-    responses?: Partial<Record<HttpStatus, ResponseConfig<T>>>;
     paginationType?: PaginationType;
+    responses?: Partial<Record<HttpStatus, ResponseConfig<T>>>;
 
     // Authentication
     auth?: AuthConfig | AuthConfig[];
 
     // Request configuration
     body?: BodyConfig;
-    queries?: QueryConfig[];
-    params?: ParamConfig[];
     headers?: HeaderConfig[];
+    params?: ParamConfig[];
+    queries?: QueryConfig[];
 
     // Content type configuration
     consumes?: string[];
     produces?: string[];
 
     // Error handling
-    errors?: (HttpStatus | CustomErrorConfig)[];
+    errors?: (CustomErrorConfig | HttpStatus)[];
     includeCommonErrors?: boolean; // Auto-include 400, 404, 500 etc.
 
     // Rate limiting
     rateLimit?: {
         limit: number;
-        window: string;
         message?: string;
+        window: string;
     };
 
     // Caching
     cache?: {
-        ttl?: number;
         description?: string;
+        ttl?: number;
     };
 
     // Additional metadata
-    operationId?: string;
     externalDocs?: {
         description: string;
         url: string;
     };
+    operationId?: string;
 
     // Validation
     validation?: {
-        groups?: string[];
         errorExamples?: ValidationErrorExample[];
+        groups?: string[];
         includeValidationErrors?: boolean; // Auto-include 400 with validation error format
     };
 }
@@ -228,10 +237,12 @@ const createAuthDecorators = (authConfig: AuthConfig | AuthConfig[]): MethodDeco
 
     // Add JWT providers
     const jwtProviders = authConfigs.filter((config) => config.type === AUTH_TYPE.JWT);
+
     if (jwtProviders.length > 0) {
         // Add individual Bearer Auth for each provider
         jwtProviders.forEach((provider) => {
             const providerName = provider.provider || 'bearer';
+
             decorators.push(ApiBearerAuth(providerName));
         });
     }
@@ -241,24 +252,31 @@ const createAuthDecorators = (authConfig: AuthConfig | AuthConfig[]): MethodDeco
         switch (config.type) {
             case AUTH_TYPE.API_KEY: {
                 const apiKeyDecorators = createApiKeyDecorator(config);
+
                 decorators.push(...apiKeyDecorators);
                 break;
             }
-            case AUTH_TYPE.OAUTH2: {
-                const scopes = config.scopes || ['read', 'write'];
-                const providerName = config.provider || 'oauth2';
-                decorators.push(ApiOAuth2(scopes, providerName));
-                break;
-            }
+
             case AUTH_TYPE.BASIC: {
                 decorators.push(ApiBasicAuth());
                 break;
             }
+
             case AUTH_TYPE.COOKIE: {
                 const cookieName = config.name || 'refresh_token';
+
                 decorators.push(ApiCookieAuth(cookieName));
                 break;
             }
+
+            case AUTH_TYPE.OAUTH2: {
+                const scopes = config.scopes || ['read', 'write'];
+                const providerName = config.provider || 'oauth2';
+
+                decorators.push(ApiOAuth2(scopes, providerName));
+                break;
+            }
+
             default: {
                 // Remove console.warn to fix no-console lint error
                 break;
@@ -274,16 +292,16 @@ const createAuthDecorators = (authConfig: AuthConfig | AuthConfig[]): MethodDeco
  */
 const createCommonErrorDecorators = (): MethodDecorator[] => [
     ApiBadRequestResponse({
-        description: 'Bad Request - Invalid input data',
         type: ErrorResponseDto,
+        description: 'Bad Request - Invalid input data',
         examples: {
             'Bad Request': {
                 summary: 'Bad Request Example',
                 value: {
-                    statusCode: 400,
                     error: 'Bad Request',
                     message: 'Invalid input data provided',
                     path: '/api/example',
+                    statusCode: 400,
                     timestamp: '2025-01-15T10:30:00.000Z',
                     requestId: 'abc123-def456-ghi789',
                 },
@@ -291,16 +309,16 @@ const createCommonErrorDecorators = (): MethodDecorator[] => [
         },
     }),
     ApiNotFoundResponse({
-        description: 'Resource not found',
         type: ErrorResponseDto,
+        description: 'Resource not found',
         examples: {
             'Not Found': {
                 summary: 'Not Found Example',
                 value: {
-                    statusCode: 404,
                     error: 'Not Found',
                     message: 'The requested resource was not found',
                     path: '/api/example',
+                    statusCode: 404,
                     timestamp: '2025-01-15T10:30:00.000Z',
                     requestId: 'abc123-def456-ghi789',
                 },
@@ -308,16 +326,16 @@ const createCommonErrorDecorators = (): MethodDecorator[] => [
         },
     }),
     ApiConflictResponse({
-        description: 'Conflict - Resource already exists or constraint violation',
         type: ErrorResponseDto,
+        description: 'Conflict - Resource already exists or constraint violation',
         examples: {
             Conflict: {
                 summary: 'Conflict Example',
                 value: {
-                    statusCode: 409,
                     error: 'Conflict',
                     message: 'Resource already exists or constraint violation',
                     path: '/api/example',
+                    statusCode: 409,
                     timestamp: '2025-01-15T10:30:00.000Z',
                     requestId: 'abc123-def456-ghi789',
                 },
@@ -325,16 +343,16 @@ const createCommonErrorDecorators = (): MethodDecorator[] => [
         },
     }),
     ApiInternalServerErrorResponse({
-        description: 'Internal Server Error',
         type: ErrorResponseDto,
+        description: 'Internal Server Error',
         examples: {
             'Internal Server Error': {
                 summary: 'Internal Server Error Example',
                 value: {
-                    statusCode: 500,
                     error: 'Internal Server Error',
                     message: 'An unexpected error occurred while processing your request',
                     path: '/api/example',
+                    statusCode: 500,
                     timestamp: '2025-01-15T10:30:00.000Z',
                     requestId: 'abc123-def456-ghi789',
                 },
@@ -342,16 +360,16 @@ const createCommonErrorDecorators = (): MethodDecorator[] => [
         },
     }),
     ApiTooManyRequestsResponse({
-        description: 'Too Many Requests - Rate limit exceeded',
         type: ErrorResponseDto,
+        description: 'Too Many Requests - Rate limit exceeded',
         examples: {
             'Too Many Requests': {
                 summary: 'Rate Limit Exceeded Example',
                 value: {
-                    statusCode: 429,
                     error: 'Too Many Requests',
                     message: 'Rate limit exceeded. Please try again later',
                     path: '/api/example',
+                    statusCode: 429,
                     timestamp: '2025-01-15T10:30:00.000Z',
                     requestId: 'abc123-def456-ghi789',
                 },
@@ -367,21 +385,22 @@ const createValidationErrorExample = (errorExamples: ValidationErrorExample[]) =
     const fieldErrors: Record<string, Record<string, string>> = {};
     const errors: string[] = [];
 
-    errorExamples.forEach(({ field, constraint, message }) => {
-        if (!fieldErrors[field]) {
-            fieldErrors[field] = {};
+    errorExamples.forEach(({ constraint, field, message }) => {
+        if (isEmpty(get(fieldErrors, field))) {
+            set(fieldErrors, field, {});
         }
-        fieldErrors[field][constraint] = message;
+
+        set(fieldErrors, [field, constraint], message);
         errors.push(message);
     });
 
     return {
-        statusCode: 400,
         error: 'Validation failed',
-        message: 'Validation failed',
         errors,
         fieldErrors,
+        message: 'Validation failed',
         path: '/api/example',
+        statusCode: 400,
         timestamp: '2025-01-15T10:30:00.000Z',
         requestId: 'abc123-def456-ghi789',
     };
@@ -390,22 +409,22 @@ const createValidationErrorExample = (errorExamples: ValidationErrorExample[]) =
 /**
  * Create custom error decorators
  */
-const createCustomErrorDecorators = (errors: (HttpStatus | CustomErrorConfig)[]): MethodDecorator[] =>
+const createCustomErrorDecorators = (errors: (CustomErrorConfig | HttpStatus)[]): MethodDecorator[] =>
     map(errors, (error) => {
         if (isNumber(error)) {
             // Simple HttpStatus
             return ApiResponse({
                 status: error,
-                description: getHttpStatusDescription(error),
                 type: ErrorResponseDto,
+                description: getHttpStatusDescription(error),
                 examples: {
                     [getHttpStatusDescription(error)]: {
                         summary: `${getHttpStatusDescription(error)} Example`,
                         value: {
-                            statusCode: error,
                             error: getHttpStatusDescription(error),
                             message: getDefaultErrorMessage(error),
                             path: '/api/example',
+                            statusCode: error,
                             timestamp: '2025-01-15T10:30:00.000Z',
                             requestId: 'abc123-def456-ghi789',
                         },
@@ -413,11 +432,12 @@ const createCustomErrorDecorators = (errors: (HttpStatus | CustomErrorConfig)[])
                 },
             });
         }
+
         // Custom error configuration
         return ApiResponse({
             status: error.status,
-            description: error.description || getHttpStatusDescription(error.status),
             type: error.type || ErrorResponseDto,
+            description: error.description || getHttpStatusDescription(error.status),
             ...(error.examples && { examples: error.examples }),
         });
     });
@@ -428,17 +448,17 @@ const createCustomErrorDecorators = (errors: (HttpStatus | CustomErrorConfig)[])
 const getHttpStatusDescription = (status: HttpStatus): string => {
     const statusDescriptions: Partial<Record<HttpStatus, string>> = {
         [HttpStatus.BAD_REQUEST]: 'Bad Request',
-        [HttpStatus.UNAUTHORIZED]: 'Unauthorized',
-        [HttpStatus.FORBIDDEN]: 'Forbidden',
-        [HttpStatus.NOT_FOUND]: 'Not Found',
         [HttpStatus.CONFLICT]: 'Conflict',
-        [HttpStatus.UNPROCESSABLE_ENTITY]: 'Unprocessable Entity',
-        [HttpStatus.TOO_MANY_REQUESTS]: 'Too Many Requests',
+        [HttpStatus.FORBIDDEN]: 'Forbidden',
         [HttpStatus.INTERNAL_SERVER_ERROR]: 'Internal Server Error',
+        [HttpStatus.NOT_FOUND]: 'Not Found',
         [HttpStatus.SERVICE_UNAVAILABLE]: 'Service Unavailable',
+        [HttpStatus.TOO_MANY_REQUESTS]: 'Too Many Requests',
+        [HttpStatus.UNAUTHORIZED]: 'Unauthorized',
+        [HttpStatus.UNPROCESSABLE_ENTITY]: 'Unprocessable Entity',
     };
 
-    return statusDescriptions[status] || `HTTP ${status}`;
+    return get(statusDescriptions, status, `HTTP ${status}`);
 };
 
 /**
@@ -447,25 +467,25 @@ const getHttpStatusDescription = (status: HttpStatus): string => {
 const getDefaultErrorMessage = (status: HttpStatus): string => {
     const errorMessages: Partial<Record<HttpStatus, string>> = {
         [HttpStatus.BAD_REQUEST]: 'Invalid input data provided',
-        [HttpStatus.UNAUTHORIZED]: 'Invalid or missing authentication',
-        [HttpStatus.FORBIDDEN]: 'Insufficient permissions',
-        [HttpStatus.NOT_FOUND]: 'The requested resource was not found',
         [HttpStatus.CONFLICT]: 'Resource already exists or constraint violation',
-        [HttpStatus.UNPROCESSABLE_ENTITY]: 'The request data is invalid',
-        [HttpStatus.TOO_MANY_REQUESTS]: 'Rate limit exceeded. Please try again later',
+        [HttpStatus.FORBIDDEN]: 'Insufficient permissions',
         [HttpStatus.INTERNAL_SERVER_ERROR]: 'An unexpected error occurred while processing your request',
+        [HttpStatus.NOT_FOUND]: 'The requested resource was not found',
         [HttpStatus.SERVICE_UNAVAILABLE]: 'Service is temporarily unavailable',
+        [HttpStatus.TOO_MANY_REQUESTS]: 'Rate limit exceeded. Please try again later',
+        [HttpStatus.UNAUTHORIZED]: 'Invalid or missing authentication',
+        [HttpStatus.UNPROCESSABLE_ENTITY]: 'The request data is invalid',
     };
 
-    return errorMessages[status] || 'An error occurred';
+    return get(errorMessages, status, 'An error occurred');
 };
 
 /**
  * Normalize response configuration
  */
 const normalizeResponseConfig = <T>(
-    response: ResponseConfig<T> | Type<T> | null | undefined,
-): ResponseConfig<T> | null => {
+    response: null | ResponseConfig<T> | Type<T> | undefined,
+): null | ResponseConfig<T> => {
     if (!response) return null;
 
     if (typeof response === 'function') {
@@ -479,12 +499,13 @@ const normalizeResponseConfig = <T>(
 /**
  * Helper to get paginated type
  */
-const getPaginatedType = <T>(pagination: PaginationType | undefined, type: Type<T>): any => {
+const getPaginatedType = <T>(pagination: PaginationType | undefined, type: Type<T>): Type<unknown> => {
     if (pagination === PAGINATION_TYPE.OFFSET) {
         return ApiPaginatedResponseDto(type);
     } else if (pagination === PAGINATION_TYPE.CURSOR) {
         return ApiCursorPaginatedResponseDto(type);
     }
+
     return ApiResponseDto(type);
 };
 
@@ -558,34 +579,37 @@ const getPaginatedType = <T>(pagination: PaginationType | undefined, type: Type<
  */
 export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator => {
     const {
-        summary,
-        description = '',
-        tags,
-        deprecated = false,
-        responses,
-        paginationType,
         auth,
         body,
-        queries = [],
-        params = [],
-        headers = [],
-        consumes,
-        produces,
-        errors = [],
-        includeCommonErrors = false,
-        rateLimit,
         cache,
-        operationId,
+        consumes,
+        deprecated = false,
+        description = '',
+        errors = [],
         externalDocs,
+        headers = [],
+        includeCommonErrors = false,
+        paginationType,
+        params = [],
+        produces,
+        queries = [],
+        rateLimit,
+        responses,
+        summary,
+        tags,
         validation,
+        operationId,
     } = options;
 
-    const decorators: (MethodDecorator | ClassDecorator | PropertyDecorator)[] = [];
+    const decorators: (ClassDecorator | MethodDecorator | PropertyDecorator)[] = [];
 
     // 1. Set Swagger Operation
-    const operationOptions: Record<string, unknown> = { summary, description };
+    const operationOptions: Record<string, unknown> = { description, summary };
+
     if (operationId) operationOptions.operationId = operationId;
+
     if (deprecated) operationOptions.deprecated = deprecated;
+
     if (externalDocs) operationOptions.externalDocs = externalDocs;
 
     decorators.push(ApiOperation(operationOptions));
@@ -593,6 +617,7 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
     // 2. Set Tags
     if (tags) {
         const tagArray = isArray(tags) ? tags : [tags];
+
         decorators.push(ApiTags(...tagArray));
     }
 
@@ -600,6 +625,7 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
     if (consumes && !isEmpty(consumes)) {
         decorators.push(ApiConsumes(...consumes));
     }
+
     if (produces && !isEmpty(produces)) {
         decorators.push(ApiProduces(...produces));
     }
@@ -607,9 +633,13 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
     // 4. Set Request Body
     if (body) {
         const bodyOptions: Record<string, unknown> = {};
+
         if (body.type) bodyOptions.type = body.type;
+
         if (body.description) bodyOptions.description = body.description;
+
         if (body.required !== undefined) bodyOptions.required = body.required;
+
         if (body.examples) bodyOptions.examples = body.examples;
 
         if (body.files && !isEmpty(body.files)) {
@@ -618,8 +648,8 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
                 type: 'object',
                 properties: mapValues(keyBy(body.files, 'name'), (file) => ({
                     type: file.isArray ? 'array' : 'string',
-                    format: 'binary',
                     description: file.description,
+                    format: 'binary',
                 })),
                 required: body.files.filter((f) => f.required).map((f) => f.name),
             };
@@ -636,8 +666,11 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
         };
 
         if (query.type) queryOptions.type = query.type;
+
         if (query.description) queryOptions.description = query.description;
+
         if (query.example !== undefined) queryOptions.example = query.example;
+
         if (query.enum) queryOptions.enum = query.enum;
 
         decorators.push(ApiQuery(queryOptions));
@@ -646,16 +679,16 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
     // 6. Set Path Parameters
     params.forEach((param: ParamConfig) => {
         const isUuid = param.type === 'uuid';
-        const schema: { type: 'string' | 'number'; format?: string; example?: string | number } = {
-            type: (isUuid ? 'string' : (param.type ?? 'string')) as 'string' | 'number',
+        const schema: { example?: number | string; format?: string; type: 'number' | 'string' } = {
+            type: (isUuid ? 'string' : (param.type ?? 'string')) as 'number' | 'string',
             ...(param.format || isUuid ? { format: param.format ?? 'uuid' } : {}),
-            ...(param.example !== undefined ? { example: param.example as string | number } : {}),
+            ...(param.example !== undefined ? { example: param.example } : {}),
         };
 
         const paramOptions: ApiParamOptions = {
             name: param.name,
-            required: true,
             description: param.description,
+            required: true,
             schema,
         };
 
@@ -679,6 +712,7 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
         Object.entries(responses).forEach(([statusCode, config]) => {
             const numStatus = Number(statusCode);
             const responseConfig = normalizeResponseConfig(config);
+
             if (responseConfig) {
                 const responseOptions: Record<string, unknown> = {
                     status: numStatus,
@@ -691,6 +725,7 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
                 }
 
                 if (responseConfig.examples) responseOptions.examples = responseConfig.examples;
+
                 if (responseConfig.headers) responseOptions.headers = responseConfig.headers;
 
                 decorators.push(ApiResponse(responseOptions));
@@ -702,23 +737,25 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
     if (auth) {
         const authConfigs = Array.isArray(auth) ? auth : [auth];
         const authDecorators = createAuthDecorators(auth);
+
         decorators.push(...authDecorators);
 
         // Automatically add 401 and 403 for authenticated endpoints
         const hasRequiredAuth = authConfigs.some((config) => config.required !== false);
+
         if (hasRequiredAuth) {
             decorators.push(
                 ApiUnauthorizedResponse({
-                    description: 'Unauthorized - Invalid or missing authentication',
                     type: ErrorResponseDto,
+                    description: 'Unauthorized - Invalid or missing authentication',
                     examples: {
                         Unauthorized: {
                             summary: 'Unauthorized Example',
                             value: {
-                                statusCode: 401,
                                 error: 'Unauthorized',
                                 message: 'Invalid or missing authentication',
                                 path: '/api/example',
+                                statusCode: 401,
                                 timestamp: '2025-01-15T10:30:00.000Z',
                                 requestId: 'abc123-def456-ghi789',
                             },
@@ -728,16 +765,16 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
             );
             decorators.push(
                 ApiForbiddenResponse({
-                    description: 'Forbidden - Insufficient permissions',
                     type: ErrorResponseDto,
+                    description: 'Forbidden - Insufficient permissions',
                     examples: {
                         Forbidden: {
                             summary: 'Forbidden Example',
                             value: {
-                                statusCode: 403,
                                 error: 'Forbidden',
                                 message: 'Insufficient permissions',
                                 path: '/api/example',
+                                statusCode: 403,
                                 timestamp: '2025-01-15T10:30:00.000Z',
                                 requestId: 'abc123-def456-ghi789',
                             },
@@ -751,22 +788,24 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
     // 10. Apply Common Error Responses
     if (includeCommonErrors) {
         const commonErrorDecorators = createCommonErrorDecorators();
+
         decorators.push(...commonErrorDecorators);
     }
 
     // 11. Apply Custom Error Responses
     if (!isEmpty(errors)) {
         const customErrorDecorators = createCustomErrorDecorators(errors);
+
         decorators.push(...customErrorDecorators);
     }
 
     // 12. Apply Validation Error Documentation
     if (validation?.includeValidationErrors || validation?.errorExamples) {
         const validationErrorExamples: ValidationErrorExample[] = validation.errorExamples || [
-            { field: 'email', constraint: 'isEmail', message: 'email must be an email' },
+            { constraint: 'isEmail', field: 'email', message: 'email must be an email' },
             {
-                field: 'password',
                 constraint: 'minLength',
+                field: 'password',
                 message: 'password must be longer than or equal to 8 characters',
             },
         ];
@@ -775,8 +814,8 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
 
         decorators.push(
             ApiBadRequestResponse({
-                description: 'Validation Error - Invalid input data',
                 type: ErrorResponseDto,
+                description: 'Validation Error - Invalid input data',
                 examples: {
                     'Validation Error': {
                         summary: 'Validation Error Example',
@@ -790,6 +829,7 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
     // 13. Apply Rate Limit and Cache Metadata
     if (rateLimit) {
         decorators.push(SetMetadata('rateLimit', rateLimit));
+
         // Auto-add 429 if not present
         if (
             !errors.some((e) =>
@@ -798,8 +838,8 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
         ) {
             decorators.push(
                 ApiTooManyRequestsResponse({
-                    description: rateLimit.message || 'Rate limit exceeded',
                     type: ErrorResponseDto,
+                    description: rateLimit.message || 'Rate limit exceeded',
                 }),
             );
         }
@@ -823,11 +863,12 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
  * Shorthand for GET endpoints
  */
 export const ApiGetEndpoint = <T>(
-    options: Omit<ApiEndpointOptions<T>, 'responses'> & { response?: ResponseConfig<T> | Type<T> | null },
+    options: Omit<ApiEndpointOptions<T>, 'responses'> & { response?: null | ResponseConfig<T> | Type<T> },
 ) => {
     const responses = options.response
         ? { [HttpStatus.OK]: normalizeResponseConfig(options.response) || { type: null } }
         : undefined;
+
     return ApiEndpoint({ ...options, responses });
 };
 
@@ -835,11 +876,12 @@ export const ApiGetEndpoint = <T>(
  * Shorthand for POST endpoints
  */
 export const ApiPostEndpoint = <T>(
-    options: Omit<ApiEndpointOptions<T>, 'responses'> & { response?: ResponseConfig<T> | Type<T> | null },
+    options: Omit<ApiEndpointOptions<T>, 'responses'> & { response?: null | ResponseConfig<T> | Type<T> },
 ) => {
     const responses = options.response
         ? { [HttpStatus.CREATED]: normalizeResponseConfig(options.response) || { type: null } }
         : undefined;
+
     return ApiEndpoint({ ...options, responses });
 };
 
@@ -847,11 +889,12 @@ export const ApiPostEndpoint = <T>(
  * Shorthand for PUT endpoints
  */
 export const ApiPutEndpoint = <T>(
-    options: Omit<ApiEndpointOptions<T>, 'responses'> & { response?: ResponseConfig<T> | Type<T> | null },
+    options: Omit<ApiEndpointOptions<T>, 'responses'> & { response?: null | ResponseConfig<T> | Type<T> },
 ) => {
     const responses = options.response
         ? { [HttpStatus.OK]: normalizeResponseConfig(options.response) || { type: null } }
         : undefined;
+
     return ApiEndpoint({ ...options, responses });
 };
 
@@ -859,11 +902,12 @@ export const ApiPutEndpoint = <T>(
  * Shorthand for PATCH endpoints
  */
 export const ApiPatchEndpoint = <T>(
-    options: Omit<ApiEndpointOptions<T>, 'responses'> & { response?: ResponseConfig<T> | Type<T> | null },
+    options: Omit<ApiEndpointOptions<T>, 'responses'> & { response?: null | ResponseConfig<T> | Type<T> },
 ) => {
     const responses = options.response
         ? { [HttpStatus.OK]: normalizeResponseConfig(options.response) || { type: null } }
         : undefined;
+
     return ApiEndpoint({ ...options, responses });
 };
 
@@ -900,8 +944,8 @@ export const ApiAuthEndpoint = <T>(
 export const ApiValidationEndpoint = <T>(
     options: Omit<ApiEndpointOptions<T>, 'validation'> & {
         validation?: {
-            groups?: string[];
             errorExamples?: ValidationErrorExample[];
+            groups?: string[];
         };
     },
 ) =>

@@ -1,4 +1,5 @@
 import { Type } from '@nestjs/common';
+
 import { ApiProperty, ApiPropertyOptions } from '@nestjs/swagger';
 
 /**
@@ -6,9 +7,9 @@ import { ApiProperty, ApiPropertyOptions } from '@nestjs/swagger';
  * @template T The type of the data payload.
  */
 export interface IApiResponse<T> {
-    statusCode: number;
+    data: null | T; // Allow null for responses like delete
     message: string;
-    data: T | null; // Allow null for responses like delete
+    statusCode: number;
 }
 
 /**
@@ -18,7 +19,7 @@ export interface IApiResponse<T> {
  * @template T The type of the data payload.
  * @returns The class definition of the API response.
  */
-export const ApiResponseDto = <T>(dataType: Type<T> | null): Type<IApiResponse<T>> => {
+export const ApiResponseDto = <T>(dataType: null | Type<T>): Type<IApiResponse<T>> => {
     // This function determines the correct options for the @ApiProperty decorator
     // based on whether a data type is provided.
     const getApiPropertyOptions = (): ApiPropertyOptions => {
@@ -26,22 +27,25 @@ export const ApiResponseDto = <T>(dataType: Type<T> | null): Type<IApiResponse<T
             // If we have a data type, specify it
             return { type: dataType, nullable: true };
         }
+
         // If data type is null, we just indicate it can be null and provide an example
-        return { nullable: true, example: null };
+        return { example: null, nullable: true };
     };
 
     class ApiResponse implements IApiResponse<T> {
-        @ApiProperty({ example: 200, description: 'HTTP Status Code' })
-        statusCode!: number;
+        @ApiProperty(getApiPropertyOptions())
+        data!: null | T;
 
-        @ApiProperty({ example: 'Success', description: 'A descriptive message for the result.' })
+        @ApiProperty({ description: 'A descriptive message for the result.', example: 'Success' })
         message!: string;
 
-        @ApiProperty(getApiPropertyOptions())
-        data!: T | null;
+        @ApiProperty({ description: 'HTTP Status Code', example: 200 })
+        statusCode!: number;
     }
+
     // Give the dynamically generated class a unique name for Swagger to avoid conflicts.
     const uniqueClassName = `ApiResponseOf${dataType ? dataType.name : 'Null'}`;
+
     Object.defineProperty(ApiResponse, 'name', { value: uniqueClassName });
 
     return ApiResponse;
@@ -62,9 +66,9 @@ export interface ApiResponseDataOptions<T> {
  * @template T The type of the data payload.
  */
 export class ApiResponseData<T> implements IApiResponse<T> {
-    statusCode: number;
-    message: string;
     data: T;
+    message: string;
+    statusCode: number;
 
     constructor(options: ApiResponseDataOptions<T>) {
         this.statusCode = options.statusCode ?? 200;

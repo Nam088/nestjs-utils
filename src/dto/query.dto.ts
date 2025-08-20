@@ -1,54 +1,46 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+import { IsArray, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
+
 import { Type } from 'class-transformer';
-import { IsArray, IsIn, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
 
-export class OrderDto {
-    @ApiProperty({ description: 'Field to sort by', example: 'createdAt' })
-    @IsString()
-    field!: string;
-
-    @ApiProperty({ description: 'Sort direction: 1 for ASC, -1 for DESC', enum: [1, -1], example: -1 })
-    @Type(() => Number)
-    @IsNumber()
-    @IsIn([1, -1])
-    direction!: 1 | -1;
-}
+import { OrderDto } from './order.dto';
 
 class BaseQueryDto {
     @ApiPropertyOptional({
-        description: 'Array of fields to sort by.',
         type: [OrderDto],
+        description: 'Array of fields to sort by.',
     })
-    @IsOptional()
     @IsArray()
-    @ValidateNested({ each: true })
+    @IsOptional()
     @Type(() => OrderDto)
+    @ValidateNested({ each: true })
     order?: OrderDto[];
 
     @ApiPropertyOptional({
-        description: 'Array of field names to include in the response.',
         type: [String],
+        description: 'Array of field names to include in the response.',
         example: ['id', 'email', 'firstName', 'lastName'],
     })
-    @IsOptional()
     @IsArray()
+    @IsOptional()
     @IsString({ each: true })
     select?: string[];
 }
 
-export const createCustomQueryDto = (filterExample: Record<string, any>) => {
+export const createCustomQueryDto = (filterExample: Record<string, unknown>) => {
     class CustomQueryDto extends BaseQueryDto {
         @ApiProperty({
-            description: 'JsonLogic rule for filtering records.',
             type: 'object',
-            example: filterExample,
             additionalProperties: true,
+            description: 'JsonLogic rule for filtering records.',
+            example: filterExample,
         })
-        @IsOptional()
         @IsObject()
-        filter: any;
+        @IsOptional()
+        filter?: Record<string, unknown>;
     }
+
     return CustomQueryDto;
 };
 
