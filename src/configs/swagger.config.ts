@@ -4,76 +4,140 @@ import type { NestApplication } from '@nestjs/core';
 import type { SwaggerCustomOptions, SwaggerDocumentOptions } from '@nestjs/swagger';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
+/** API key location type for authentication */
 type ApiKeyLocation = 'cookie' | 'header' | 'query';
 
-// --- API Key ---
+/**
+ * Configuration interface for API key authentication.
+ */
 export interface ApiKeyConfig {
+    /** Array of API key providers */
     providers?: ApiKeyProvider[];
-    // Fallback for single provider (backward compatibility)
+    /** Fallback description for single provider (backward compatibility) */
     description?: string;
+    /** Fallback location for single provider */
     in?: ApiKeyLocation;
+    /** Fallback key name for single provider */
     keyName?: string;
 }
 
+/**
+ * Individual API key provider configuration.
+ */
 export interface ApiKeyProvider {
+    /** Description of the API key provider */
     description?: string;
+    /** Location where the API key is expected */
     in: ApiKeyLocation;
+    /** Name of the key parameter */
     keyName: string;
+    /** Name of the provider */
     name: string;
 }
 
-// --- JWT ---
+/**
+ * Configuration interface for JWT authentication.
+ */
 export interface JwtConfig {
+    /** Array of JWT providers */
     providers?: JwtProvider[];
-    // Fallback for single provider
+    /** Fallback bearer format for single provider */
     bearerFormat?: string;
+    /** Fallback description for single provider */
     description?: string;
 }
 
+/**
+ * Individual JWT provider configuration.
+ */
 export interface JwtProvider {
+    /** Bearer token format */
     bearerFormat?: string;
+    /** Description of the JWT provider */
     description?: string;
+    /** Name of the provider */
     name: string;
 }
 
-// --- OAuth2 ---
+/**
+ * Configuration interface for OAuth2 authentication.
+ */
 export interface OAuth2Config {
+    /** Array of OAuth2 providers */
     providers?: OAuth2Provider[];
-    // Fallback for single provider
+    /** Fallback authorization URL for single provider */
     authorizationUrl?: string;
+    /** Fallback description for single provider */
     description?: string;
+    /** Fallback scopes for single provider */
     scopes?: Record<string, string>;
+    /** Fallback token URL for single provider */
     tokenUrl?: string;
 }
 
+/**
+ * Individual OAuth2 provider configuration.
+ */
 export interface OAuth2Provider {
+    /** OAuth2 authorization URL */
     authorizationUrl: string;
+    /** Description of the OAuth2 provider */
     description?: string;
+    /** Name of the provider */
     name: string;
+    /** Available OAuth2 scopes */
     scopes: Record<string, string>;
+    /** OAuth2 token URL */
     tokenUrl: string;
 }
 
-// --- Servers ---
+/**
+ * Swagger server configuration interface.
+ */
 export interface SwaggerServer {
+    /** Optional description of the server */
     description?: string;
+    /** Server URL */
     url: string;
 }
 
-// --- Main Swagger Config ---
+/**
+ * Main Swagger configuration options interface.
+ */
 export interface SwaggerConfigOptions {
+    /** API key authentication configuration */
     apiKey?: ApiKeyConfig;
+    /** API description */
     description: string;
+    /** JWT authentication configuration */
     jwt?: JwtConfig;
+    /** Node environment */
     nodeEnv: string;
+    /** OAuth2 authentication configuration */
     oauth2?: OAuth2Config;
+    /** Application port */
     port: number | string;
+    /** Available servers configuration */
     servers?: SwaggerServer[];
+    /** API title */
     title: string;
+    /** API version */
     version: string;
 }
 
-// eslint-disable-next-line complexity
+/**
+ * Sets up Swagger documentation for a NestJS application.
+ * @param {NestApplication} app - The NestJS application instance
+ * @param {SwaggerConfigOptions} options - Swagger configuration options
+ * @example
+ * setUpSwagger(app, {
+ *   title: 'My API',
+ *   description: 'API documentation',
+ *   version: '1.0.0',
+ *   nodeEnv: 'development',
+ *   port: 3000
+ * });
+ */
 export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions) => {
     const { title, apiKey, description, jwt, nodeEnv, oauth2, port, servers, version } = options;
 
