@@ -59,6 +59,16 @@ import {
 
 import type { Constructor } from '../types';
 
+/**
+ * Transform decorator that converts values to boolean.
+ * @param {ValidationOptions} options - Optional validation options
+ * @returns {PropertyDecorator} Transform decorator
+ * @example
+ * class MyDto {
+ *   @ToBoolean()
+ *   isActive: boolean;
+ * }
+ */
 export const ToBoolean = (options?: ValidationOptions): PropertyDecorator =>
     Transform(({ value }): boolean => {
         if (value === 'true' || value === true) return true;
@@ -68,15 +78,56 @@ export const ToBoolean = (options?: ValidationOptions): PropertyDecorator =>
         return value as boolean;
     }, options);
 
+/**
+ * Transform decorator that converts string values to lowercase.
+ * @param {ValidationOptions} options - Optional validation options
+ * @returns {PropertyDecorator} Transform decorator
+ * @example
+ * class MyDto {
+ *   @ToLowerCase()
+ *   username: string;
+ * }
+ */
 export const ToLowerCase = (options?: ValidationOptions): PropertyDecorator =>
     Transform(({ value }): string => (isString(value) ? toLower(value) : (value as string)), options);
 
+/**
+ * Transform decorator that converts string values to uppercase.
+ * @param {ValidationOptions} options - Optional validation options
+ * @returns {PropertyDecorator} Transform decorator
+ * @example
+ * class MyDto {
+ *   @ToUpperCase()
+ *   countryCode: string;
+ * }
+ */
 export const ToUpperCase = (options?: ValidationOptions): PropertyDecorator =>
     Transform(({ value }): string => (isString(value) ? toUpper(value) : (value as string)), options);
 
+/**
+ * Validation decorator that allows null values.
+ * @param {ValidationOptions} options - Optional validation options
+ * @returns {PropertyDecorator} Validation decorator
+ * @example
+ * class MyDto {
+ *   @IsNullable()
+ *   optionalField: string | null;
+ * }
+ */
 export const IsNullable = (options?: ValidationOptions): PropertyDecorator =>
     ValidateIf((_obj, value) => value !== null, options);
 
+/**
+ * Custom password validation decorator with pattern matching.
+ * @param {RegExp | string} pattern - Optional regex pattern for password validation
+ * @param {ValidationOptions} validationOptions - Optional validation options
+ * @returns {PropertyDecorator} Custom validation decorator
+ * @example
+ * class UserDto {
+ *   @IsPassword(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, { message: 'Password too weak' })
+ *   password: string;
+ * }
+ */
 export const IsPassword =
     (pattern?: RegExp | string, validationOptions?: ValidationOptions): PropertyDecorator =>
     (object, propertyName) => {
@@ -224,7 +275,12 @@ interface IStringFieldOptions extends IFieldOptions {
 }
 type ITokenFieldOptions = IFieldOptions;
 
-// Enhanced helper functions
+/**
+ * Conditionally adds a decorator to the decorators array based on a condition.
+ * @param {PropertyDecorator[]} decorators - Array of decorators to add to
+ * @param {unknown} condition - Condition to evaluate
+ * @param {PropertyDecorator} decorator - Decorator to add if condition is truthy
+ */
 export const addConditionalDecorator = (
     decorators: PropertyDecorator[],
     condition: unknown,
@@ -235,6 +291,13 @@ export const addConditionalDecorator = (
     }
 };
 
+/**
+ * Creates validation options with proper message handling and priority.
+ * @param {IFieldOptions} options - Field options containing messages and validation settings
+ * @param {string} messageKey - Optional key to look up the message in messages object
+ * @param {string} defaultMessage - Optional default message if no custom message found
+ * @returns {ValidationOptions} Validation options with message and settings
+ */
 export const createValidationOptions = (
     options: IFieldOptions,
     messageKey?: string,
@@ -262,7 +325,11 @@ export const createValidationOptions = (
     };
 };
 
-// Helper to add custom decorators
+/**
+ * Helper function to add custom decorators to the decorators array.
+ * @param {PropertyDecorator[]} decorators - Array of decorators to add to
+ * @param {IFieldOptions} options - Field options containing custom validators and transforms
+ */
 export const addCustomDecorators = (decorators: PropertyDecorator[], options: IFieldOptions): void => {
     if (options.customValidators) {
         decorators.push(...options.customValidators);
@@ -273,6 +340,11 @@ export const addCustomDecorators = (decorators: PropertyDecorator[], options: IF
     }
 };
 
+/**
+ * Handles nullable and required validation for fields.
+ * @param {PropertyDecorator[]} decorators - Array of decorators to add to
+ * @param {IFieldOptions} options - Field options containing nullable and required settings
+ */
 export const handleNullableAndRequired = (decorators: PropertyDecorator[], options: IFieldOptions): void => {
     if (get(options, 'nullable', false)) {
         const nullableOptions = createValidationOptions(options, 'nullable', '$property cannot be null');
@@ -285,6 +357,13 @@ export const handleNullableAndRequired = (decorators: PropertyDecorator[], optio
     }
 };
 
+/**
+ * Adds Swagger API property decorator with appropriate options.
+ * @param {PropertyDecorator[]} decorators - Array of decorators to add to
+ * @param {Record<string, unknown>} options - Options for the API property
+ * @param {unknown} defaultType - Default type for the API property
+ * @param {object} additionalProps - Additional properties to merge into the API options
+ */
 export const addSwaggerDecorator = (
     decorators: PropertyDecorator[],
     options: Record<string, unknown>,
@@ -333,13 +412,27 @@ export const addSwaggerDecorator = (
     }
 };
 
+/**
+ * Adds transform decorator if transform function is provided.
+ * @param {PropertyDecorator[]} decorators - Array of decorators to add to
+ * @param {IFieldOptions} options - Field options containing transform function
+ */
 export const addTransformDecorator = (decorators: PropertyDecorator[], options: IFieldOptions): void => {
     if (isFunction(options.transform)) {
         decorators.push(Transform(({ value }): unknown => options.transform!(value)));
     }
 };
 
-// Enhanced NumberField with more options
+/**
+ * Enhanced number field decorator with comprehensive validation options.
+ * @param {INumberFieldOptions & Omit<ApiPropertyOptions, 'type'>} options - Number field configuration options
+ * @returns {PropertyDecorator} Combined decorator for number validation
+ * @example
+ * class ProductDto {
+ *   @NumberField({ min: 0, max: 1000, int: true })
+ *   price: number;
+ * }
+ */
 export const NumberField = (
     options: INumberFieldOptions & Omit<ApiPropertyOptions, 'type'> = {},
 ): PropertyDecorator => {
@@ -400,6 +493,16 @@ export const NumberField = (
     return applyDecorators(...decorators);
 };
 
+/**
+ * Optional number field decorator that automatically adds IsOptional.
+ * @param {INumberFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'>} options - Number field options
+ * @returns {PropertyDecorator} Combined decorator for optional number validation
+ * @example
+ * class UserDto {
+ *   @NumberFieldOptional({ min: 18, max: 120 })
+ *   age?: number;
+ * }
+ */
 export const NumberFieldOptional = (
     options: INumberFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'> = {},
 ): PropertyDecorator => {
@@ -408,6 +511,16 @@ export const NumberFieldOptional = (
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), NumberField(mergedOptions));
 };
 
+/**
+ * Enhanced string field decorator with comprehensive validation and transformation options.
+ * @param {IStringFieldOptions & Omit<ApiPropertyOptions, 'type'>} options - String field configuration options
+ * @returns {PropertyDecorator} Combined decorator for string validation
+ * @example
+ * class UserDto {
+ *   @StringField({ minLength: 2, maxLength: 50, trim: true })
+ *   name: string;
+ * }
+ */
 export const StringField = (
     options: IStringFieldOptions & Omit<ApiPropertyOptions, 'type'> = {},
 ): PropertyDecorator => {
@@ -572,6 +685,16 @@ export const StringField = (
     return applyDecorators(...decorators);
 };
 
+/**
+ * Optional string field decorator that automatically adds IsOptional.
+ * @param {IStringFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'>} options - String field options
+ * @returns {PropertyDecorator} Combined decorator for optional string validation
+ * @example
+ * class UserDto {
+ *   @StringFieldOptional({ maxLength: 100 })
+ *   bio?: string;
+ * }
+ */
 export const StringFieldOptional = (
     options: IStringFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'> = {},
 ): PropertyDecorator => {
@@ -580,6 +703,16 @@ export const StringFieldOptional = (
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), StringField(mergedOptions));
 };
 
+/**
+ * JWT token field decorator with automatic JWT validation.
+ * @param {ITokenFieldOptions & Omit<ApiPropertyOptions, 'type'>} options - Token field configuration options
+ * @returns {PropertyDecorator} Combined decorator for JWT token validation
+ * @example
+ * class AuthDto {
+ *   @TokenField()
+ *   accessToken: string;
+ * }
+ */
 export const TokenField = (options: ITokenFieldOptions & Omit<ApiPropertyOptions, 'type'> = {}): PropertyDecorator => {
     const decorators = [Type(() => String)];
     const isEach = get(options, 'each', false);
@@ -594,6 +727,16 @@ export const TokenField = (options: ITokenFieldOptions & Omit<ApiPropertyOptions
     return applyDecorators(...decorators);
 };
 
+/**
+ * Optional JWT token field decorator.
+ * @param {ITokenFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'>} options - Token field options
+ * @returns {PropertyDecorator} Combined decorator for optional JWT token validation
+ * @example
+ * class RequestDto {
+ *   @TokenFieldOptional()
+ *   refreshToken?: string;
+ * }
+ */
 export const TokenFieldOptional = (
     options: ITokenFieldOptions & Omit<ApiPropertyOptions, 'required' | 'type'> = {},
 ): PropertyDecorator => {
@@ -602,6 +745,17 @@ export const TokenFieldOptional = (
     return applyDecorators(IsOptional({ each: get(options, 'each', false) }), TokenField(mergedOptions));
 };
 
+/**
+ * Password field decorator with pattern validation and minimum length.
+ * @param {RegExp | string} pattern - Optional regex pattern for password validation
+ * @param {IStringFieldOptions & Omit<ApiPropertyOptions, 'minLength' | 'type'>} options - Password field options
+ * @returns {PropertyDecorator} Combined decorator for password validation
+ * @example
+ * class UserDto {
+ *   @PasswordField(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, { minLength: 8 })
+ *   password: string;
+ * }
+ */
 export const PasswordField = (
     pattern?: RegExp | string,
     options: IStringFieldOptions & Omit<ApiPropertyOptions, 'minLength' | 'type'> = {},
@@ -614,6 +768,16 @@ export const PasswordField = (
     return applyDecorators(...decorators);
 };
 
+/**
+ * Optional password field decorator.
+ * @param {IStringFieldOptions & Omit<ApiPropertyOptions, 'minLength' | 'required' | 'type'>} options - Password field options
+ * @returns {PropertyDecorator} Combined decorator for optional password validation
+ * @example
+ * class UpdateUserDto {
+ *   @PasswordFieldOptional({ minLength: 8 })
+ *   newPassword?: string;
+ * }
+ */
 export const PasswordFieldOptional = (
     options: IStringFieldOptions & Omit<ApiPropertyOptions, 'minLength' | 'required' | 'type'> = {},
 ): PropertyDecorator => {
@@ -928,7 +1092,14 @@ export const ConditionalField =
         })(target, propertyKey);
     };
 
-// Safe variable name extraction with enhanced error handling
+/**
+ * Safely extracts variable name from a function reference with enhanced error handling.
+ * @param {() => unknown} variableFunction - Function that returns the variable
+ * @returns {string} Extracted variable name or 'UnknownEnum' if extraction fails
+ * @example
+ * enum UserRole { ADMIN, USER }
+ * const name = getVariableName(() => UserRole); // 'UserRole'
+ */
 export const getVariableName = (variableFunction: () => unknown): string => {
     try {
         if (!isFunction(variableFunction)) {
@@ -958,7 +1129,20 @@ export const getVariableName = (variableFunction: () => unknown): string => {
     }
 };
 
-// Custom validator factory functions
+/**
+ * Creates a custom validator decorator with specified validation logic.
+ * @param {string} validatorName - Name of the validator
+ * @param {(value: unknown, args?: unknown[]) => boolean} validationFunction - Function that validates the value
+ * @param {string} defaultMessage - Optional default error message
+ * @param {unknown[]} constraints - Optional validation constraints
+ * @returns {PropertyDecorator} Custom validator decorator
+ * @example
+ * const IsEven = createCustomValidator(
+ *   'isEven',
+ *   (value: number) => value % 2 === 0,
+ *   'Value must be even'
+ * );
+ */
 export const createCustomValidator =
     (
         validatorName: string,
@@ -981,6 +1165,16 @@ export const createCustomValidator =
         });
     };
 
+/**
+ * Creates a custom transform decorator with specified transformation logic.
+ * @param {(value: unknown) => unknown} transformFunction - Function that transforms the value
+ * @param {ValidationOptions} options - Optional validation options
+ * @returns {PropertyDecorator} Custom transform decorator
+ * @example
+ * const TrimAndLowercase = createCustomTransform((value: string) => 
+ *   value.trim().toLowerCase()
+ * );
+ */
 export const createCustomTransform = (
     transformFunction: (value: unknown) => unknown,
     options?: ValidationOptions,
@@ -1019,23 +1213,48 @@ export const buildValidationMessage = (template: string, replacements: Record<st
         template,
     );
 
-// Validation rule builder
+/**
+ * Validation rule builder for creating custom field decorators with fluent API.
+ * Provides a flexible way to build complex validation rules.
+ */
 export class ValidationRuleBuilder {
+    /** Array of decorators to apply */
     private decorators: PropertyDecorator[] = [];
+    /** Field options configuration */
     private options: IFieldOptions = {};
 
+    /**
+     * Adds a transform decorator to the builder.
+     * @param {PropertyDecorator} transform - Transform decorator to add
+     * @returns {ValidationRuleBuilder} Builder instance for chaining
+     * @example
+     * ValidationRuleBuilder.create()
+     *   .addTransform(Transform(({ value }) => value.trim()))
+     */
     addTransform(transform: PropertyDecorator): this {
         this.decorators.push(transform);
 
         return this;
     }
 
+    /**
+     * Adds a validator decorator to the builder.
+     * @param {PropertyDecorator} validator - Validator decorator to add
+     * @returns {ValidationRuleBuilder} Builder instance for chaining
+     * @example
+     * ValidationRuleBuilder.create()
+     *   .addValidator(IsEmail())
+     */
     addValidator(validator: PropertyDecorator): this {
         this.decorators.push(validator);
 
         return this;
     }
 
+    /**
+     * Builds and returns the decorators and options.
+     * @returns {object} Object containing decorators array and options
+     */
     build(): { decorators: PropertyDecorator[]; options: IFieldOptions } {
         return {
             decorators: [...this.decorators],
@@ -1043,10 +1262,24 @@ export class ValidationRuleBuilder {
         };
     }
 
+    /**
+     * Creates a new ValidationRuleBuilder instance.
+     * @returns {ValidationRuleBuilder} New builder instance
+     * @example
+     * const builder = ValidationRuleBuilder.create();
+     */
     static create(): ValidationRuleBuilder {
         return new ValidationRuleBuilder();
     }
 
+    /**
+     * Sets a validation message for a specific key.
+     * @param {string} key - Message key
+     * @param {string} message - Validation message
+     * @returns {ValidationRuleBuilder} Builder instance for chaining
+     * @example
+     * builder.setMessage('required', 'This field is required');
+     */
     setMessage(key: string, message: string): this {
         if (!this.options.messages) {
             this.options.messages = {};
@@ -1057,12 +1290,33 @@ export class ValidationRuleBuilder {
         return this;
     }
 
+    /**
+     * Sets an option value for the field.
+     * @template K - Key type
+     * @param {K} key - Option key
+     * @param {IFieldOptions[K]} value - Option value
+     * @returns {ValidationRuleBuilder} Builder instance for chaining
+     * @example
+     * builder.setOption('required', false);
+     */
     setOption<K extends keyof IFieldOptions>(key: K, value: IFieldOptions[K]): this {
         set(this.options, key, value);
 
         return this;
     }
 
+    /**
+     * Applies all decorators and returns the combined decorator.
+     * @returns {PropertyDecorator} Combined property decorator
+     * @example
+     * class MyDto {
+     *   @ValidationRuleBuilder.create()
+     *     .addValidator(IsString())
+     *     .setMessage('required', 'Name is required')
+     *     .apply()
+     *   name: string;
+     * }
+     */
     apply(): PropertyDecorator {
         const { decorators } = this.build();
 
@@ -1070,7 +1324,15 @@ export class ValidationRuleBuilder {
     }
 }
 
-// Export utility functions for advanced usage
+/**
+ * Utility object containing helper functions for field validation and decoration.
+ * Provides access to internal utility functions for advanced field customization.
+ * @example
+ * const customField = FieldUtils.createFlexibleField(String, {
+ *   validators: [IsString()],
+ *   transforms: [Transform(({ value }) => value.trim())]
+ * });
+ */
 export const FieldUtils = {
     addConditionalDecorator,
     addCustomDecorators,
