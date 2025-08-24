@@ -5,7 +5,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose } from 'class-transformer';
 
 /**
- * Interface for Paging constructor options
+ * Interface for Paging constructor options.
+ * Defines all available options for creating a Paging instance.
  */
 export interface PagingOptions {
     currentPageSize?: number;
@@ -23,7 +24,8 @@ export interface PagingOptions {
 }
 
 /**
- * Interface for Paging static method options
+ * Interface for Paging static method options.
+ * Simplified options for basic paging creation.
  */
 export interface PagingCreateOptions {
     limit: number;
@@ -33,7 +35,8 @@ export interface PagingCreateOptions {
 }
 
 /**
- * Interface for Paging auto calculation options
+ * Interface for Paging auto calculation options.
+ * Used for automatic calculation of pagination values.
  */
 export interface PagingAutoCalculationOptions {
     currentPageSize?: number;
@@ -42,6 +45,10 @@ export interface PagingAutoCalculationOptions {
     total: number;
 }
 
+/**
+ * Represents pagination information for offset-based pagination.
+ * Provides comprehensive pagination metadata including page numbers, totals, and navigation flags.
+ */
 @Exclude()
 export class Paging {
     @ApiProperty({ description: 'Number of items in current page', example: 10, required: false })
@@ -92,6 +99,16 @@ export class Paging {
     @Expose()
     totalPages!: number;
 
+    /**
+     * Creates a new Paging instance with the provided options.
+     * @param {PagingOptions} options - Configuration options for pagination
+     * @example
+     * const paging = new Paging({
+     *   page: 1,
+     *   limit: 10,
+     *   total: 100
+     * });
+     */
     constructor(options: PagingOptions) {
         this.page = options.page;
         this.limit = options.limit;
@@ -108,15 +125,28 @@ export class Paging {
     }
 
     /**
-     * Static factory method for backward compatibility
+     * Static factory method for backward compatibility.
+     * @param {PagingCreateOptions} options - Basic paging options
+     * @returns {Paging} New Paging instance
      * @deprecated Use constructor with object parameter instead
+     * @example
+     * const paging = Paging.create({ page: 1, limit: 10, total: 100 });
      */
     static create(options: PagingCreateOptions): Paging {
         return new Paging(options);
     }
 
     /**
-     * Helper method to create paging with automatic calculation
+     * Helper method to create paging with automatic calculation.
+     * @param {PagingAutoCalculationOptions} options - Auto calculation options
+     * @returns {Paging} New Paging instance with calculated values
+     * @example
+     * const paging = Paging.createWithAutoCalculation({
+     *   page: 2,
+     *   limit: 10,
+     *   total: 95,
+     *   currentPageSize: 10
+     * });
      */
     static createWithAutoCalculation(options: PagingAutoCalculationOptions): Paging {
         const { currentPageSize, limit, page, total } = options;
@@ -178,14 +208,29 @@ export interface ApiPaginatedResponseDataAutoPagingOptions<T> {
 
 /**
  * A concrete implementation class for creating standardized paginated API responses within services.
- * @template T The type of the data items in the array.
+ * @template T - The type of the data items in the array
  */
 export class ApiPaginatedResponseData<T> implements IApiPaginatedResponse<T> {
+    /** Array of data items */
     data: T[];
+    /** Response message */
     message: string;
+    /** Pagination information */
     paging: Paging;
+    /** HTTP status code */
     statusCode: number;
 
+    /**
+     * Creates a new ApiPaginatedResponseData instance.
+     * @param {ApiPaginatedResponseDataOptions<T>} options - Configuration options for the paginated response
+     * @example
+     * const response = new ApiPaginatedResponseData({
+     *   data: [{ id: 1, name: 'John' }],
+     *   paging: new Paging({ page: 1, limit: 10, total: 1 }),
+     *   message: 'Users retrieved',
+     *   statusCode: 200
+     * });
+     */
     constructor(options: ApiPaginatedResponseDataOptions<T>) {
         this.statusCode = options.statusCode ?? 200;
         this.message = options.message ?? 'Success';
@@ -194,15 +239,34 @@ export class ApiPaginatedResponseData<T> implements IApiPaginatedResponse<T> {
     }
 
     /**
-     * Static factory method for backward compatibility
+     * Static factory method for backward compatibility.
+     * @template T - The type of the data items in the array
+     * @param {T[]} data - Array of data items
+     * @param {Paging} paging - Pagination information
+     * @param {string} message - Success message
+     * @param {number} statusCode - HTTP status code
+     * @returns {ApiPaginatedResponseData<T>} New paginated response instance
      * @deprecated Use constructor with object parameter instead
+     * @example
+     * const response = ApiPaginatedResponseData.create(users, paging, 'Success', 200);
      */
     static create<T>(data: T[], paging: Paging, message = 'Success', statusCode = 200): ApiPaginatedResponseData<T> {
         return new ApiPaginatedResponseData({ data, message, paging, statusCode });
     }
 
     /**
-     * Helper method to create paginated response with automatic paging calculation
+     * Helper method to create paginated response with automatic paging calculation.
+     * @template T - The type of the data items in the array
+     * @param {ApiPaginatedResponseDataAutoPagingOptions<T>} options - Auto paging options
+     * @returns {ApiPaginatedResponseData<T>} New paginated response with calculated paging
+     * @example
+     * const response = ApiPaginatedResponseData.createWithAutoPaging({
+     *   data: users,
+     *   page: 1,
+     *   limit: 10,
+     *   total: 95,
+     *   message: 'Users retrieved'
+     * });
      */
     static createWithAutoPaging<T>(options: ApiPaginatedResponseDataAutoPagingOptions<T>): ApiPaginatedResponseData<T> {
         const { data, limit, message = 'Success', page, statusCode = 200, total } = options;
@@ -214,9 +278,12 @@ export class ApiPaginatedResponseData<T> implements IApiPaginatedResponse<T> {
 
 /**
  * A factory function to create a class for Swagger documentation of standardized paginated API responses.
- * @template T The type of the data items in the array.
- * @param itemType The class or type of the items in the data array.
- * @returns {Type<IApiPaginatedResponse<T>>} The class definition of the API paginated response.
+ * This helps Swagger understand the generic `data` property for paginated responses.
+ * @template T - The type of the data items in the array
+ * @param {Type<T>} itemType - The class or type of the items in the data array
+ * @returns {Type<IApiPaginatedResponse<T>>} The class definition of the API paginated response
+ * @example
+ * const UsersPaginatedResponseDto = ApiPaginatedResponseDto(UserDto);
  */
 export const ApiPaginatedResponseDto = <T>(itemType: Type<T>) => {
     class PaginatedResponse implements IApiPaginatedResponse<T> {
@@ -244,7 +311,8 @@ export const ApiPaginatedResponseDto = <T>(itemType: Type<T>) => {
 // --- Cursor Pagination ---
 
 /**
- * Interface for CursorPaging constructor options
+ * Interface for CursorPaging constructor options.
+ * Defines all available options for creating a CursorPaging instance.
  */
 export interface CursorPagingOptions {
     currentPage?: null | number;
@@ -260,7 +328,8 @@ export interface CursorPagingOptions {
 }
 
 /**
- * Interface for CursorPaging static method options
+ * Interface for CursorPaging static method options.
+ * Simplified options for basic cursor paging creation.
  */
 export interface CursorPagingCreateOptions {
     hasNextPage: boolean;
@@ -268,7 +337,8 @@ export interface CursorPagingCreateOptions {
 }
 
 /**
- * Interface for CursorPaging auto calculation options
+ * Interface for CursorPaging auto calculation options.
+ * @template T - The type of data items used for cursor calculation
  */
 export interface CursorPagingAutoCalculationOptions<T> {
     currentPage?: null | number;
@@ -281,6 +351,10 @@ export interface CursorPagingAutoCalculationOptions<T> {
     total?: null | number;
 }
 
+/**
+ * Represents pagination information for cursor-based pagination.
+ * Provides cursor-based navigation with support for next/previous page tracking.
+ */
 @Exclude()
 export class CursorPaging {
     @ApiProperty({ description: 'Current page number (if available)', example: 1, required: false })
@@ -342,6 +416,16 @@ export class CursorPaging {
     @Expose()
     totalPages?: null | number;
 
+    /**
+     * Creates a new CursorPaging instance with the provided options.
+     * @param {CursorPagingOptions} options - Configuration options for cursor pagination
+     * @example
+     * const cursorPaging = new CursorPaging({
+     *   hasNextPage: true,
+     *   nextCursor: 'eyJpZCI6MTB9',
+     *   previousCursor: null
+     * });
+     */
     constructor(options: CursorPagingOptions) {
         this.nextCursor = options.nextCursor;
         this.hasNextPage = options.hasNextPage;
@@ -356,15 +440,32 @@ export class CursorPaging {
     }
 
     /**
-     * Static factory method for backward compatibility
+     * Static factory method for backward compatibility.
+     * @param {CursorPagingCreateOptions} options - Basic cursor paging options
+     * @returns {CursorPaging} New CursorPaging instance
      * @deprecated Use constructor with object parameter instead
+     * @example
+     * const cursorPaging = CursorPaging.create({
+     *   hasNextPage: true,
+     *   nextCursor: 'eyJpZCI6MTB9'
+     * });
      */
     static create(options: CursorPagingCreateOptions): CursorPaging {
         return new CursorPaging(options);
     }
 
     /**
-     * Helper method to create cursor paging with automatic calculation
+     * Helper method to create cursor paging with automatic calculation.
+     * @template T - The type of data items
+     * @param {CursorPagingAutoCalculationOptions<T>} options - Auto calculation options
+     * @returns {CursorPaging} New CursorPaging instance with calculated values
+     * @example
+     * const cursorPaging = CursorPaging.createWithAutoCalculation({
+     *   data: users,
+     *   limit: 10,
+     *   nextCursor: 'eyJpZCI6MjB9',
+     *   total: 95
+     * });
      */
     static createWithAutoCalculation<T>(options: CursorPagingAutoCalculationOptions<T>): CursorPaging {
         const { currentPage, data, firstCursor, lastCursor, limit, nextCursor, previousCursor, total } = options;
@@ -387,6 +488,10 @@ export class CursorPaging {
     }
 }
 
+/**
+ * Interface for the standardized cursor paginated API response structure.
+ * @template T - The type of the data items in the array
+ */
 export interface IApiCursorPaginatedResponse<T> {
     cursorPaging: CursorPaging;
     data: T[];
@@ -406,7 +511,8 @@ export interface ApiCursorPaginatedResponseDataOptions<T> {
 }
 
 /**
- * Interface for ApiCursorPaginatedResponseData auto cursors options
+ * Interface for ApiCursorPaginatedResponseData auto cursors options.
+ * @template T - The type of the data items in the array
  */
 export interface ApiCursorPaginatedResponseDataAutoCursorsOptions<T> {
     currentPage?: null | number;
@@ -423,14 +529,29 @@ export interface ApiCursorPaginatedResponseDataAutoCursorsOptions<T> {
 
 /**
  * A concrete implementation class for creating standardized cursor paginated API responses within services.
- * @template T The type of the data items in the array.
+ * @template T - The type of the data items in the array
  */
 export class ApiCursorPaginatedResponseData<T> implements IApiCursorPaginatedResponse<T> {
+    /** Cursor pagination information */
     cursorPaging: CursorPaging;
+    /** Array of data items */
     data: T[];
+    /** Response message */
     message: string;
+    /** HTTP status code */
     statusCode: number;
 
+    /**
+     * Creates a new ApiCursorPaginatedResponseData instance.
+     * @param {ApiCursorPaginatedResponseDataOptions<T>} options - Configuration options for the cursor paginated response
+     * @example
+     * const response = new ApiCursorPaginatedResponseData({
+     *   data: [{ id: 1, name: 'John' }],
+     *   cursorPaging: new CursorPaging({ hasNextPage: true, nextCursor: 'eyJpZCI6MX0' }),
+     *   message: 'Users retrieved',
+     *   statusCode: 200
+     * });
+     */
     constructor(options: ApiCursorPaginatedResponseDataOptions<T>) {
         this.statusCode = options.statusCode ?? 200;
         this.message = options.message ?? 'Success';
@@ -439,8 +560,16 @@ export class ApiCursorPaginatedResponseData<T> implements IApiCursorPaginatedRes
     }
 
     /**
-     * Static factory method for backward compatibility
+     * Static factory method for backward compatibility.
+     * @template T - The type of the data items in the array
+     * @param {T[]} data - Array of data items
+     * @param {CursorPaging} cursorPaging - Cursor pagination information
+     * @param {string} message - Success message
+     * @param {number} statusCode - HTTP status code
+     * @returns {ApiCursorPaginatedResponseData<T>} New cursor paginated response instance
      * @deprecated Use constructor with object parameter instead
+     * @example
+     * const response = ApiCursorPaginatedResponseData.create(users, cursorPaging, 'Success', 200);
      */
     static create<T>(
         data: T[],
@@ -452,7 +581,18 @@ export class ApiCursorPaginatedResponseData<T> implements IApiCursorPaginatedRes
     }
 
     /**
-     * Helper method to create cursor paginated response with automatic cursor calculation
+     * Helper method to create cursor paginated response with automatic cursor calculation.
+     * @template T - The type of the data items in the array
+     * @param {ApiCursorPaginatedResponseDataAutoCursorsOptions<T>} options - Auto cursors calculation options
+     * @returns {ApiCursorPaginatedResponseData<T>} New cursor paginated response with calculated cursors
+     * @example
+     * const response = ApiCursorPaginatedResponseData.createWithAutoCursors({
+     *   data: users,
+     *   limit: 10,
+     *   nextCursor: 'eyJpZCI6MjB9',
+     *   total: 95,
+     *   message: 'Users retrieved'
+     * });
      */
     static createWithAutoCursors<T>(
         options: ApiCursorPaginatedResponseDataAutoCursorsOptions<T>,
@@ -492,7 +632,19 @@ export class ApiCursorPaginatedResponseData<T> implements IApiCursorPaginatedRes
     }
 }
 
+/**
+ * Factory function to create a class for Swagger documentation of standardized cursor paginated API responses.
+ * @template T - The type of the data items in the array
+ * @param {Type<T>} itemType - The class or type of the items in the data array
+ * @returns {Type<IApiCursorPaginatedResponse<T>>} The class definition of the API cursor paginated response
+ * @example
+ * const UsersCursorPaginatedResponseDto = ApiCursorPaginatedResponseDto(UserDto);
+ */
 export const ApiCursorPaginatedResponseDto = <T>(itemType: Type<T>) => {
+    /**
+     * Cursor paginated response class for Swagger documentation.
+     * @template T - The type of the data items in the array
+     */
     class CursorPaginatedResponse implements IApiCursorPaginatedResponse<T> {
         @ApiProperty({ type: () => CursorPaging })
         cursorPaging!: CursorPaging;

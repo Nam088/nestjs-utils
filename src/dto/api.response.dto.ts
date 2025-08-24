@@ -15,13 +15,22 @@ export interface IApiResponse<T> {
 /**
  * A factory function to create a class for Swagger documentation of standardized API responses.
  * This helps Swagger understand the generic `data` property.
- * @param dataType The class or type of the data payload. Pass null for empty data response.
- * @template T The type of the data payload.
- * @returns The class definition of the API response.
+ * @template T - The type of the data payload
+ * @param {Type<T> | null} dataType - The class or type of the data payload. Pass null for empty data response
+ * @returns {Type<IApiResponse<T>>} The class definition of the API response
+ * @example
+ * // For responses with data
+ * const UserResponseDto = ApiResponseDto(UserDto);
+ * 
+ * // For responses without data (e.g., delete operations)
+ * const DeleteResponseDto = ApiResponseDto(null);
  */
 export const ApiResponseDto = <T>(dataType: null | Type<T>): Type<IApiResponse<T>> => {
-    // This function determines the correct options for the @ApiProperty decorator
-    // based on whether a data type is provided.
+    /**
+     * This function determines the correct options for the @ApiProperty decorator
+     * based on whether a data type is provided.
+     * @returns {ApiPropertyOptions} The configured API property options
+     */
     const getApiPropertyOptions = (): ApiPropertyOptions => {
         if (dataType) {
             // If we have a data type, specify it
@@ -32,6 +41,10 @@ export const ApiResponseDto = <T>(dataType: null | Type<T>): Type<IApiResponse<T
         return { example: null, nullable: true };
     };
 
+    /**
+     * A concrete implementation class for creating standardized API responses within services.
+     * @template T - The type of the data payload
+     */
     class ApiResponse implements IApiResponse<T> {
         @ApiProperty(getApiPropertyOptions())
         data!: null | T;
@@ -63,13 +76,26 @@ export interface ApiResponseDataOptions<T> {
 
 /**
  * A concrete implementation class for creating standardized API responses within services.
- * @template T The type of the data payload.
+ * @template T - The type of the data payload
  */
 export class ApiResponseData<T> implements IApiResponse<T> {
+    /** The response data payload */
     data: T;
+    /** Descriptive message for the response */
     message: string;
+    /** HTTP status code */
     statusCode: number;
 
+    /**
+     * Creates a new ApiResponseData instance.
+     * @param {ApiResponseDataOptions<T>} options - Configuration options for the response
+     * @example
+     * const response = new ApiResponseData({
+     *   data: { id: 1, name: 'John' },
+     *   message: 'User retrieved successfully',
+     *   statusCode: 200
+     * });
+     */
     constructor(options: ApiResponseDataOptions<T>) {
         this.statusCode = options.statusCode ?? 200;
         this.message = options.message ?? 'Success';
@@ -77,8 +103,15 @@ export class ApiResponseData<T> implements IApiResponse<T> {
     }
 
     /**
-     * Static factory method for backward compatibility
+     * Static factory method for backward compatibility.
+     * @template T - The type of the data payload
+     * @param {T} data - The response data
+     * @param {string} message - Success message
+     * @param {number} statusCode - HTTP status code
+     * @returns {ApiResponseData<T>} New ApiResponseData instance
      * @deprecated Use constructor with object parameter instead
+     * @example
+     * const response = ApiResponseData.create(userData, 'Success', 200);
      */
     static create<T>(data: T, message = 'Success', statusCode = 200): ApiResponseData<T> {
         return new ApiResponseData({ data, message, statusCode });

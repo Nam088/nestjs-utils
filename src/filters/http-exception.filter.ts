@@ -13,27 +13,52 @@ import { ValidationException } from '../exeption';
 
 import type { Request, Response } from 'express';
 
+/**
+ * Interface for error metrics tracking functionality.
+ */
 export interface ErrorMetrics {
+    /** Function to increment error count metrics */
     increment: (status: number, path: string, method: string) => void;
 }
 
+/**
+ * Configuration options for HttpExceptionFilter.
+ */
 export interface HttpExceptionFilterOptions {
+    /** Custom error messages for specific HTTP status codes */
     customErrorMessages?: Record<number, string>;
+    /** Whether to enable error metrics tracking */
     enableMetrics?: boolean;
+    /** Whether to enable rate limit tracking */
     enableRateLimitTracking?: boolean;
+    /** Whether to enable sensitive data sanitization */
     enableSanitization?: boolean;
+    /** Whether the application is running in development mode */
     isDevelopment: boolean;
 }
 
+/**
+ * Interface for rate limit tracking functionality.
+ */
 export interface RateLimitTracker {
+    /** Function to track rate limit violations */
     track: (ip: string, path: string) => void;
 }
 
+/**
+ * Interface for sanitized error objects.
+ */
 interface SanitizedError {
+    /** Sanitized error message */
     message: string;
+    /** Sanitized stack trace (optional) */
     stack?: string;
 }
 
+/**
+ * Global exception filter for handling and formatting HTTP exceptions.
+ * Provides comprehensive error handling with sanitization, metrics, and development features.
+ */
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
     private readonly customErrorMessages: Record<number, string>;
@@ -59,6 +84,18 @@ export class HttpExceptionFilter implements ExceptionFilter {
         /\b\d{3}-\d{2}-\d{4}\b/g, // SSN
     ];
 
+    /**
+     * Creates a new HttpExceptionFilter instance.
+     * @param {Reflector} reflector - NestJS reflector for metadata access
+     * @param {HttpExceptionFilterOptions} options - Optional filter configuration
+     * @param {ErrorMetrics} errorMetrics - Optional error metrics tracker
+     * @param {RateLimitTracker} rateLimitTracker - Optional rate limit tracker
+     * @example
+     * const filter = new HttpExceptionFilter(
+     *   reflector,
+     *   { isDevelopment: true, enableSanitization: true }
+     * );
+     */
     constructor(
         reflector: Reflector,
         options?: HttpExceptionFilterOptions,
@@ -75,6 +112,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
         this.rateLimitTracker = rateLimitTracker;
     }
 
+    /**
+     * Builds the error payload for response formatting.
+     * @param {number} status - HTTP status code
+     * @param {string | object} errorResponse - Error response data
+     * @param {Request} request - Express request object
+     * @param {string} correlationId - Correlation ID for request tracking
+     * @param {unknown} exception - The original exception
+     * @returns {ErrorResponseDto} Formatted error response
+     */
     private buildErrorPayload(
         status: number,
         errorResponse:
@@ -338,6 +384,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
         response.setHeader('Expires', '0');
     }
 
+    /**
+     * Sanitizes error objects by removing sensitive information.
+     * @param {SanitizedError} error - Error object to sanitize
+     * @returns {SanitizedError} Sanitized error object
+     */
     private sanitizeError(error: SanitizedError): SanitizedError {
         const sanitizedMessage = this.sanitizeString(error.message);
         const sanitizedStack = this.sanitizeString(error.stack || '');
@@ -348,6 +399,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
         };
     }
 
+    /**
+     * Sanitizes strings by removing sensitive information patterns.
+     * @param {string} input - String to sanitize
+     * @returns {string} Sanitized string with sensitive data replaced
+     */
     private sanitizeString(input: string): string {
         if (!isString(input)) {
             return String(input || '');
@@ -362,6 +418,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
         return sanitized;
     }
 
+    /**
+     * Main exception handler method implementing ExceptionFilter interface.
+     * @param {unknown} exception - The caught exception
+     * @param {ArgumentsHost} host - NestJS arguments host for context
+     */
     catch(exception: unknown, host: ArgumentsHost) {
         const ctx = host.switchToHttp();
         const response = ctx.getResponse<Response>();
