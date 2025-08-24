@@ -90,47 +90,47 @@ export const LOGIC_OPERATORS = {
  * to their actual JSON Logic implementation and metadata. This is the single source of truth.
  */
 export const ALL_OPERATORS_MAP: Record<string, { arity: number | number[]; op: string }> = {
-    // --- Standard Comparison ---
-    [STRING_OPERATORS.EQUALS]: { arity: 2, op: '==' },
-    [STRING_OPERATORS.NOT_EQUALS]: { arity: 2, op: '!=' },
+    // --- Array & Set Operations ---
+    [ARRAY_OPERATORS.CONTAINS]: { arity: 2, op: 'array_contains' },
+    [ARRAY_OPERATORS.OVERLAPS]: { arity: 2, op: 'array_overlaps' },
 
-    // --- Strict Comparison ---
-    strict_equals: { arity: 2, op: '===' },
-    strict_not_equals: { arity: 2, op: '!==' },
+    // --- JSONB Operations (Custom) ---
+    [JSON_OPERATORS.ARRAY_TEXT_CONTAINS]: { arity: 2, op: 'json_array_text_contains' },
+    [JSON_OPERATORS.CONTAINS]: { arity: 2, op: 'json_contains' },
 
+    [JSON_OPERATORS.EQUALS]: { arity: 2, op: 'json_equals' },
+    [JSON_OPERATORS.IN]: { arity: 2, op: 'json_in' },
     // --- Numeric Comparison ---
     [NUMBER_OPERATORS.BETWEEN]: { arity: 3, op: 'between' },
     [NUMBER_OPERATORS.GT]: { arity: 2, op: '>' },
     [NUMBER_OPERATORS.GTE]: { arity: 2, op: '>=' },
     [NUMBER_OPERATORS.LT]: { arity: 2, op: '<' },
+
     [NUMBER_OPERATORS.LTE]: { arity: 2, op: '<=' },
     [NUMBER_OPERATORS.NOT_BETWEEN]: { arity: 3, op: 'not_between' },
-
+    // --- Strict Comparison ---
+    strict_equals: { arity: 2, op: '===' },
+    strict_not_equals: { arity: 2, op: '!==' },
     // --- Text Search ---
     [STRING_OPERATORS.CONTAINS]: { arity: 2, op: 'contains' },
     [STRING_OPERATORS.ENDS_WITH]: { arity: 2, op: 'ends_with' },
-    [STRING_OPERATORS.LIKE]: { arity: 2, op: 'like' },
-    [STRING_OPERATORS.NOT_CONTAINS]: { arity: 2, op: 'not_contains' },
-    [STRING_OPERATORS.NOT_LIKE]: { arity: 2, op: 'not_like' },
-    [STRING_OPERATORS.STARTS_WITH]: { arity: 2, op: 'starts_with' },
 
+    // --- Standard Comparison ---
+    [STRING_OPERATORS.EQUALS]: { arity: 2, op: '==' },
+    [STRING_OPERATORS.IN]: { arity: 2, op: 'in' },
     // --- Null & Empty Checks ---
     [STRING_OPERATORS.IS_EMPTY]: { arity: 1, op: 'is_empty' },
     [STRING_OPERATORS.IS_NOT_EMPTY]: { arity: 1, op: 'is_not_empty' },
+
     [STRING_OPERATORS.IS_NOT_NULL]: { arity: 1, op: 'is_not_null' },
     [STRING_OPERATORS.IS_NULL]: { arity: 1, op: 'is_null' },
+    [STRING_OPERATORS.LIKE]: { arity: 2, op: 'like' },
+    [STRING_OPERATORS.NOT_CONTAINS]: { arity: 2, op: 'not_contains' },
 
-    // --- Array & Set Operations ---
-    [ARRAY_OPERATORS.CONTAINS]: { arity: 2, op: 'array_contains' },
-    [ARRAY_OPERATORS.OVERLAPS]: { arity: 2, op: 'array_overlaps' },
-    [STRING_OPERATORS.IN]: { arity: 2, op: 'in' },
+    [STRING_OPERATORS.NOT_EQUALS]: { arity: 2, op: '!=' },
     [STRING_OPERATORS.NOT_IN]: { arity: 2, op: 'not_in' },
-
-    // --- JSONB Operations (Custom) ---
-    [JSON_OPERATORS.ARRAY_TEXT_CONTAINS]: { arity: 2, op: 'json_array_text_contains' },
-    [JSON_OPERATORS.CONTAINS]: { arity: 2, op: 'json_contains' },
-    [JSON_OPERATORS.EQUALS]: { arity: 2, op: 'json_equals' },
-    [JSON_OPERATORS.IN]: { arity: 2, op: 'json_in' },
+    [STRING_OPERATORS.NOT_LIKE]: { arity: 2, op: 'not_like' },
+    [STRING_OPERATORS.STARTS_WITH]: { arity: 2, op: 'starts_with' },
 };
 
 /**

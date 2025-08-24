@@ -10,7 +10,7 @@ export default createNestJSConfig({
   perfectionist: {
     enabled: true,
     type: 'recommended-natural', // or 'recommended-natural', 'recommended-line-length', 'recommended-custom'
-    partitionByComment: true, // Enable comment-based partitioning
+    partitionByComment: false, // Enable comment-based partitioning
   },
   
   // Additional ignore patterns for this project

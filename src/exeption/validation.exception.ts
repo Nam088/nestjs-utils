@@ -35,18 +35,6 @@ export class ValidationException extends BadRequestException {
     }
 
     /**
-     * Get all validation error messages as a flat array.
-     * @returns {string[]} Array of error messages
-     * @example
-     * const exception = new ValidationException(errors);
-     * const messages = exception.getValidationMessages();
-     * // ['must be an email', 'is required']
-     */
-    getValidationMessages(): string[] {
-        return this.validationErrors.flatMap((error) => Object.values(error.constraints || {}));
-    }
-
-    /**
      * Get validation errors with original constraints format.
      * @returns {Record<string, Record<string, string>>} Field errors grouped by property
      * @example
@@ -73,5 +61,17 @@ export class ValidationException extends BadRequestException {
      */
     getValidationErrorsByProperty(): Record<string, Record<string, string>> {
         return this.getFieldErrors();
+    }
+
+    /**
+     * Get all validation error messages as a flat array.
+     * @returns {string[]} Array of error messages
+     * @example
+     * const exception = new ValidationException(errors);
+     * const messages = exception.getValidationMessages();
+     * // ['must be an email', 'is required']
+     */
+    getValidationMessages(): string[] {
+        return this.validationErrors.flatMap((error) => Object.values(error.constraints || {}));
     }
 }

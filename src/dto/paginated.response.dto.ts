@@ -5,44 +5,37 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose } from 'class-transformer';
 
 /**
- * Interface for Paging constructor options.
- * Defines all available options for creating a Paging instance.
+ * Interface for ApiPaginatedResponseData auto paging options
  */
-export interface PagingOptions {
-    currentPageSize?: number;
-    endItem?: number;
-    firstPage?: number;
-    hasNextPage?: boolean;
-    hasPreviousPage?: boolean;
-    lastPage?: number;
+export interface ApiPaginatedResponseDataAutoPagingOptions<T> {
+    data: T[];
     limit: number;
-    offset?: number;
+    message?: string;
     page: number;
-    startItem?: number;
+    statusCode?: number;
     total: number;
-    totalPages?: number;
 }
 
 /**
- * Interface for Paging static method options.
- * Simplified options for basic paging creation.
+ * Interface for ApiPaginatedResponseData constructor options
+ * @template T The type of the data items in the array.
  */
-export interface PagingCreateOptions {
-    limit: number;
-    page: number;
-    total: number;
-    totalPages?: number;
+export interface ApiPaginatedResponseDataOptions<T> {
+    data: T[];
+    message?: string;
+    paging: Paging;
+    statusCode?: number;
 }
 
 /**
- * Interface for Paging auto calculation options.
- * Used for automatic calculation of pagination values.
+ * Interface for the standardized paginated API response structure.
+ * @template T The type of the data items in the array.
  */
-export interface PagingAutoCalculationOptions {
-    currentPageSize?: number;
-    limit: number;
-    page: number;
-    total: number;
+export interface IApiPaginatedResponse<T> {
+    data: T[];
+    message: string;
+    paging: Paging;
+    statusCode: number;
 }
 
 /**
@@ -173,37 +166,44 @@ export class Paging {
 }
 
 /**
- * Interface for the standardized paginated API response structure.
- * @template T The type of the data items in the array.
+ * Interface for Paging auto calculation options.
+ * Used for automatic calculation of pagination values.
  */
-export interface IApiPaginatedResponse<T> {
-    data: T[];
-    message: string;
-    paging: Paging;
-    statusCode: number;
-}
-
-/**
- * Interface for ApiPaginatedResponseData constructor options
- * @template T The type of the data items in the array.
- */
-export interface ApiPaginatedResponseDataOptions<T> {
-    data: T[];
-    message?: string;
-    paging: Paging;
-    statusCode?: number;
-}
-
-/**
- * Interface for ApiPaginatedResponseData auto paging options
- */
-export interface ApiPaginatedResponseDataAutoPagingOptions<T> {
-    data: T[];
+export interface PagingAutoCalculationOptions {
+    currentPageSize?: number;
     limit: number;
-    message?: string;
     page: number;
-    statusCode?: number;
     total: number;
+}
+
+/**
+ * Interface for Paging static method options.
+ * Simplified options for basic paging creation.
+ */
+export interface PagingCreateOptions {
+    limit: number;
+    page: number;
+    total: number;
+    totalPages?: number;
+}
+
+/**
+ * Interface for Paging constructor options.
+ * Defines all available options for creating a Paging instance.
+ */
+export interface PagingOptions {
+    currentPageSize?: number;
+    endItem?: number;
+    firstPage?: number;
+    hasNextPage?: boolean;
+    hasPreviousPage?: boolean;
+    lastPage?: number;
+    limit: number;
+    offset?: number;
+    page: number;
+    startItem?: number;
+    total: number;
+    totalPages?: number;
 }
 
 /**
@@ -311,29 +311,31 @@ export const ApiPaginatedResponseDto = <T>(itemType: Type<T>) => {
 // --- Cursor Pagination ---
 
 /**
- * Interface for CursorPaging constructor options.
- * Defines all available options for creating a CursorPaging instance.
+ * Interface for ApiCursorPaginatedResponseData auto cursors options.
+ * @template T - The type of the data items in the array
  */
-export interface CursorPagingOptions {
+export interface ApiCursorPaginatedResponseDataAutoCursorsOptions<T> {
     currentPage?: null | number;
-    currentPageSize?: number;
+    data: T[];
     firstCursor?: null | string;
-    hasNextPage: boolean;
-    hasPreviousPage?: boolean;
     lastCursor?: null | string;
-    nextCursor: null | string;
+    limit: number;
+    message?: string;
+    nextCursor?: null | string;
     previousCursor?: null | string;
+    statusCode?: number;
     total?: null | number;
-    totalPages?: null | number;
 }
 
 /**
- * Interface for CursorPaging static method options.
- * Simplified options for basic cursor paging creation.
+ * Interface for ApiCursorPaginatedResponseData constructor options
+ * @template T The type of the data items in the array.
  */
-export interface CursorPagingCreateOptions {
-    hasNextPage: boolean;
-    nextCursor: null | string;
+export interface ApiCursorPaginatedResponseDataOptions<T> {
+    cursorPaging: CursorPaging;
+    data: T[];
+    message?: string;
+    statusCode?: number;
 }
 
 /**
@@ -489,6 +491,32 @@ export class CursorPaging {
 }
 
 /**
+ * Interface for CursorPaging static method options.
+ * Simplified options for basic cursor paging creation.
+ */
+export interface CursorPagingCreateOptions {
+    hasNextPage: boolean;
+    nextCursor: null | string;
+}
+
+/**
+ * Interface for CursorPaging constructor options.
+ * Defines all available options for creating a CursorPaging instance.
+ */
+export interface CursorPagingOptions {
+    currentPage?: null | number;
+    currentPageSize?: number;
+    firstCursor?: null | string;
+    hasNextPage: boolean;
+    hasPreviousPage?: boolean;
+    lastCursor?: null | string;
+    nextCursor: null | string;
+    previousCursor?: null | string;
+    total?: null | number;
+    totalPages?: null | number;
+}
+
+/**
  * Interface for the standardized cursor paginated API response structure.
  * @template T - The type of the data items in the array
  */
@@ -497,34 +525,6 @@ export interface IApiCursorPaginatedResponse<T> {
     data: T[];
     message: string;
     statusCode: number;
-}
-
-/**
- * Interface for ApiCursorPaginatedResponseData constructor options
- * @template T The type of the data items in the array.
- */
-export interface ApiCursorPaginatedResponseDataOptions<T> {
-    cursorPaging: CursorPaging;
-    data: T[];
-    message?: string;
-    statusCode?: number;
-}
-
-/**
- * Interface for ApiCursorPaginatedResponseData auto cursors options.
- * @template T - The type of the data items in the array
- */
-export interface ApiCursorPaginatedResponseDataAutoCursorsOptions<T> {
-    currentPage?: null | number;
-    data: T[];
-    firstCursor?: null | string;
-    lastCursor?: null | string;
-    limit: number;
-    message?: string;
-    nextCursor?: null | string;
-    previousCursor?: null | string;
-    statusCode?: number;
-    total?: null | number;
 }
 
 /**

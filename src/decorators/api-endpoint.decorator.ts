@@ -41,6 +41,67 @@ import { ApiCursorPaginatedResponseDto, ApiPaginatedResponseDto } from '../dto/p
 
 import type { PaginationType } from '../constants/pagination.constants';
 
+/**
+ * Enhanced options for configuring the ApiEndpoint decorator.
+ * Provides comprehensive configuration for API endpoint documentation and behavior.
+ * @template T - Type of the response data
+ */
+interface ApiEndpointOptions<T> {
+    // Authentication
+    auth?: AuthConfig | AuthConfig[];
+    // Request configuration
+    body?: BodyConfig;
+    // Caching
+    cache?: {
+        description?: string;
+        ttl?: number;
+    };
+    // Content type configuration
+    consumes?: string[];
+
+    // Basic configuration
+    deprecated?: boolean;
+    description?: string;
+
+    // Error handling
+    errors?: (CustomErrorConfig | HttpStatus)[];
+
+    // Additional metadata
+    externalDocs?: {
+        description: string;
+        url: string;
+    };
+    headers?: HeaderConfig[];
+    includeCommonErrors?: boolean; // Auto-include 400, 404, 500 etc.
+    operationId?: string;
+
+    // Response configuration
+    paginationType?: PaginationType;
+    params?: ParamConfig[];
+
+    produces?: string[];
+    queries?: QueryConfig[];
+
+    // Rate limiting
+    rateLimit?: {
+        limit: number;
+        message?: string;
+        window: string;
+    };
+
+    responses?: Partial<Record<HttpStatus, ResponseConfig<T>>>;
+
+    summary: string;
+    tags?: string | string[];
+
+    // Validation
+    validation?: {
+        errorExamples?: ValidationErrorExample[];
+        groups?: string[];
+        includeValidationErrors?: boolean; // Auto-include 400 with validation error format
+    };
+}
+
 // --- Enhanced Types for configuration ---
 /**
  * Individual authentication configurations.
@@ -56,6 +117,17 @@ interface ApiKeyAuthConfig {
 }
 
 /**
+ * Union type for all supported authentication configurations.
+ * @example
+ * const authConfig: AuthConfig = {
+ *   type: AUTH_TYPE.JWT,
+ *   provider: 'access-token',
+ *   required: true
+ * };
+ */
+type AuthConfig = ApiKeyAuthConfig | BasicAuthConfig | CookieAuthConfig | JwtAuthConfig | OAuth2AuthConfig;
+
+/**
  * Basic authentication configuration.
  * Defines settings for HTTP Basic authentication.
  */
@@ -64,6 +136,23 @@ interface BasicAuthConfig {
     required?: boolean;
     /** Authentication type identifier */
     type: typeof AUTH_TYPE.BASIC;
+}
+
+/**
+ * Request body configuration.
+ * Defines how request body should be documented and validated.
+ */
+interface BodyConfig {
+    /** Description of the request body */
+    description?: string;
+    /** Example request body values */
+    examples?: Record<string, unknown>;
+    /** File upload configuration if applicable */
+    files?: { description?: string; isArray?: boolean; name: string; required?: boolean }[];
+    /** Whether the request body is required */
+    required?: boolean;
+    /** Type class for the request body */
+    type?: Type<unknown>;
 }
 
 /**
@@ -77,6 +166,36 @@ interface CookieAuthConfig {
     required?: boolean;
     /** Authentication type identifier */
     type: typeof AUTH_TYPE.COOKIE;
+}
+
+/**
+ * Custom error response configuration.
+ * Defines how custom error responses should be documented.
+ */
+interface CustomErrorConfig {
+    /** Description of the error */
+    description?: string;
+    /** Example error responses */
+    examples?: Record<string, unknown>;
+    /** HTTP status code for the error */
+    status: HttpStatus;
+    /** Type class for the error response */
+    type?: Type<unknown>;
+}
+
+/**
+ * Header configuration.
+ * Defines how custom headers should be documented.
+ */
+interface HeaderConfig {
+    /** Description of the header */
+    description?: string;
+    /** Example value for the header */
+    example?: string;
+    /** Name of the header */
+    name: string;
+    /** Whether the header is required */
+    required?: boolean;
 }
 
 /**
@@ -108,48 +227,20 @@ interface OAuth2AuthConfig {
 }
 
 /**
- * Union type for all supported authentication configurations.
- * @example
- * const authConfig: AuthConfig = {
- *   type: AUTH_TYPE.JWT,
- *   provider: 'access-token',
- *   required: true
- * };
+ * Path parameter configuration.
+ * Defines how URL path parameters should be documented and validated.
  */
-type AuthConfig = ApiKeyAuthConfig | BasicAuthConfig | CookieAuthConfig | JwtAuthConfig | OAuth2AuthConfig;
-
-/**
- * Custom error response configuration.
- * Defines how custom error responses should be documented.
- */
-interface CustomErrorConfig {
-    /** Description of the error */
+interface ParamConfig {
+    /** Description of the path parameter */
     description?: string;
-    /** Example error responses */
-    examples?: Record<string, unknown>;
-    /** HTTP status code for the error */
-    status: HttpStatus;
-    /** Type class for the error response */
-    type?: Type<unknown>;
-}
-
-/**
- * Request body configuration.
- * Defines how request body should be documented and validated.
- */
-interface BodyConfig {
-    /** Description of the request body */
-    description?: string;
-    /** Example request body values */
-    examples?: Record<string, unknown>;
-    /** File upload configuration if applicable */
-    files?: { description?: string; isArray?: boolean; name: string; required?: boolean }[];
-    /** Whether the request body is required */
-    required?: boolean;
-    /** Type class for the request body */
-    type?: Type<unknown>;
-}
-    type?: Type<unknown>;
+    /** Example value for the parameter */
+    example?: number | string;
+    /** Format specification for the parameter */
+    format?: string;
+    /** Name of the path parameter */
+    name: string;
+    /** Type of the parameter */
+    type?: 'number' | 'string' | 'uuid';
 }
 
 /**
@@ -169,38 +260,6 @@ interface QueryConfig {
     required?: boolean;
     /** Type of the parameter */
     type?: 'array' | 'boolean' | 'number' | 'string';
-}
-
-/**
- * Path parameter configuration.
- * Defines how URL path parameters should be documented and validated.
- */
-interface ParamConfig {
-    /** Description of the path parameter */
-    description?: string;
-    /** Example value for the parameter */
-    example?: number | string;
-    /** Format specification for the parameter */
-    format?: string;
-    /** Name of the path parameter */
-    name: string;
-    /** Type of the parameter */
-    type?: 'number' | 'string' | 'uuid';
-}
-
-/**
- * Header configuration.
- * Defines how custom headers should be documented.
- */
-interface HeaderConfig {
-    /** Description of the header */
-    description?: string;
-    /** Example value for the header */
-    example?: string;
-    /** Name of the header */
-    name: string;
-    /** Whether the header is required */
-    required?: boolean;
 }
 
 /**
@@ -231,67 +290,6 @@ interface ValidationErrorExample {
     field: string;
     /** Error message for the validation failure */
     message: string;
-}
-
-/**
- * Enhanced options for configuring the ApiEndpoint decorator.
- * Provides comprehensive configuration for API endpoint documentation and behavior.
- * @template T - Type of the response data
- */
-interface ApiEndpointOptions<T> {
-    // Basic configuration
-    deprecated?: boolean;
-    description?: string;
-    summary: string;
-    tags?: string | string[];
-
-    // Response configuration
-    paginationType?: PaginationType;
-    responses?: Partial<Record<HttpStatus, ResponseConfig<T>>>;
-
-    // Authentication
-    auth?: AuthConfig | AuthConfig[];
-
-    // Request configuration
-    body?: BodyConfig;
-    headers?: HeaderConfig[];
-    params?: ParamConfig[];
-    queries?: QueryConfig[];
-
-    // Content type configuration
-    consumes?: string[];
-    produces?: string[];
-
-    // Error handling
-    errors?: (CustomErrorConfig | HttpStatus)[];
-    includeCommonErrors?: boolean; // Auto-include 400, 404, 500 etc.
-
-    // Rate limiting
-    rateLimit?: {
-        limit: number;
-        message?: string;
-        window: string;
-    };
-
-    // Caching
-    cache?: {
-        description?: string;
-        ttl?: number;
-    };
-
-    // Additional metadata
-    externalDocs?: {
-        description: string;
-        url: string;
-    };
-    operationId?: string;
-
-    // Validation
-    validation?: {
-        errorExamples?: ValidationErrorExample[];
-        groups?: string[];
-        includeValidationErrors?: boolean; // Auto-include 400 with validation error format
-    };
 }
 
 // --- Enhanced mapping for Swagger decorators ---

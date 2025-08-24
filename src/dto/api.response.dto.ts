@@ -21,7 +21,7 @@ export interface IApiResponse<T> {
  * @example
  * // For responses with data
  * const UserResponseDto = ApiResponseDto(UserDto);
- * 
+ *
  * // For responses without data (e.g., delete operations)
  * const DeleteResponseDto = ApiResponseDto(null);
  */

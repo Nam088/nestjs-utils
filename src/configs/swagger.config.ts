@@ -1,24 +1,22 @@
+/* eslint-disable complexity */
 /* eslint-disable max-lines-per-function */
 import type { NestApplication } from '@nestjs/core';
 
 import type { SwaggerCustomOptions, SwaggerDocumentOptions } from '@nestjs/swagger';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
-/** API key location type for authentication */
-type ApiKeyLocation = 'cookie' | 'header' | 'query';
-
 /**
  * Configuration interface for API key authentication.
  */
 export interface ApiKeyConfig {
-    /** Array of API key providers */
-    providers?: ApiKeyProvider[];
     /** Fallback description for single provider (backward compatibility) */
     description?: string;
     /** Fallback location for single provider */
     in?: ApiKeyLocation;
     /** Fallback key name for single provider */
     keyName?: string;
+    /** Array of API key providers */
+    providers?: ApiKeyProvider[];
 }
 
 /**
@@ -39,12 +37,12 @@ export interface ApiKeyProvider {
  * Configuration interface for JWT authentication.
  */
 export interface JwtConfig {
-    /** Array of JWT providers */
-    providers?: JwtProvider[];
     /** Fallback bearer format for single provider */
     bearerFormat?: string;
     /** Fallback description for single provider */
     description?: string;
+    /** Array of JWT providers */
+    providers?: JwtProvider[];
 }
 
 /**
@@ -63,12 +61,12 @@ export interface JwtProvider {
  * Configuration interface for OAuth2 authentication.
  */
 export interface OAuth2Config {
-    /** Array of OAuth2 providers */
-    providers?: OAuth2Provider[];
     /** Fallback authorization URL for single provider */
     authorizationUrl?: string;
     /** Fallback description for single provider */
     description?: string;
+    /** Array of OAuth2 providers */
+    providers?: OAuth2Provider[];
     /** Fallback scopes for single provider */
     scopes?: Record<string, string>;
     /** Fallback token URL for single provider */
@@ -89,16 +87,6 @@ export interface OAuth2Provider {
     scopes: Record<string, string>;
     /** OAuth2 token URL */
     tokenUrl: string;
-}
-
-/**
- * Swagger server configuration interface.
- */
-export interface SwaggerServer {
-    /** Optional description of the server */
-    description?: string;
-    /** Server URL */
-    url: string;
 }
 
 /**
@@ -124,6 +112,19 @@ export interface SwaggerConfigOptions {
     /** API version */
     version: string;
 }
+
+/**
+ * Swagger server configuration interface.
+ */
+export interface SwaggerServer {
+    /** Optional description of the server */
+    description?: string;
+    /** Server URL */
+    url: string;
+}
+
+/** API key location type for authentication */
+type ApiKeyLocation = 'cookie' | 'header' | 'query';
 
 /**
  * Sets up Swagger documentation for a NestJS application.
@@ -313,8 +314,6 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
       </div>`;
 
     const customOptions: SwaggerCustomOptions = {
-        customCssUrl: ['https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap'],
-        customSiteTitle: `${title} Docs`,
         // Only customize the topbar; keep default Swagger styles elsewhere
         customCss: `
           .swagger-ui .topbar { display: none; }
@@ -329,6 +328,7 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
           #ecom-topbar .right .link { color: #60a5fa; text-decoration: none; font-weight:600; }
           #ecom-topbar .right .link:hover { color:#93c5fd; text-decoration: underline; }
         `,
+        customCssUrl: ['https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap'],
         // Inject custom HTML topbar
         customJsStr: `
           (function(){
@@ -342,6 +342,7 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
             } catch (e) { /* no-op */ }
           })();
         `,
+        customSiteTitle: `${title} Docs`,
         swaggerOptions: {
             displayRequestDuration: true,
             docExpansion: 'list',

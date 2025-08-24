@@ -147,11 +147,9 @@ export const IsPassword =
             target: object.constructor,
             validator: {
                 defaultMessage(validationArguments?: ValidationArguments): string {
-                    if (!validationArguments) return '$property must match pattern';
+                    if (!validationArguments) return '$property must be a valid password';
 
-                    const [regexPattern] = validationArguments.constraints as RegExp[];
-
-                    return `$property must match pattern: ${regexPattern}`;
+                    return '$property must be a valid password';
                 },
                 validate(value: string, validationArguments?: ValidationArguments): boolean {
                     if (!validationArguments) return false;
@@ -200,6 +198,10 @@ interface IEnumFieldOptions extends IFieldOptions {
 }
 
 interface IFieldOptions {
+    // Allow custom transform decorators
+    customTransforms?: PropertyDecorator[];
+    // Allow custom validation decorators
+    customValidators?: PropertyDecorator[];
     each?: boolean;
     groups?: string[];
     message?: ((validationArguments: ValidationArguments) => string) | string;
@@ -211,15 +213,11 @@ interface IFieldOptions {
     };
     nullable?: boolean;
     required?: boolean;
+    // Skip default validations
+    skipDefaultValidation?: boolean;
     swagger?: boolean;
     transform?: (value: unknown) => unknown;
     validationOptions?: ValidationOptions;
-    // Allow custom validation decorators
-    customValidators?: PropertyDecorator[];
-    // Allow custom transform decorators
-    customTransforms?: PropertyDecorator[];
-    // Skip default validations
-    skipDefaultValidation?: boolean;
 }
 
 interface IFileFieldOptions extends IFieldOptions {
@@ -251,13 +249,14 @@ interface INumberFieldOptions extends IFieldOptions {
     min?: number;
 }
 interface IStringFieldOptions extends IFieldOptions {
-    format?: 'alphanumeric' | 'base64' | 'email' | 'hexColor' | 'ip' | 'json' | 'phone' | 'url' | 'uuid';
+    format?: 'alphanumeric' | 'base64' | 'email' | 'hexColor' | 'ip' | 'json' | 'password' | 'phone' | 'url' | 'uuid';
     maxLength?: number;
     messages?: {
         [key: string]: string | undefined;
         email?: string;
         format?: string;
         invalid?: string;
+        isPassword?: string;
         maxLength?: string;
         minLength?: string;
         pattern?: string;
@@ -648,6 +647,17 @@ export const StringField = (
                 const jsonOptions = createValidationOptions(options, 'format', '$property must be a valid JSON string');
 
                 decorators.push(IsJSON(jsonOptions));
+                break;
+            }
+
+            case 'password': {
+                const passwordOptions = createValidationOptions(
+                    options,
+                    'isPassword',
+                    '$property must be a valid password',
+                );
+
+                decorators.push(IsPassword(undefined, passwordOptions));
                 break;
             }
 
@@ -1171,7 +1181,7 @@ export const createCustomValidator =
  * @param {ValidationOptions} options - Optional validation options
  * @returns {PropertyDecorator} Custom transform decorator
  * @example
- * const TrimAndLowercase = createCustomTransform((value: string) => 
+ * const TrimAndLowercase = createCustomTransform((value: string) =>
  *   value.trim().toLowerCase()
  * );
  */
