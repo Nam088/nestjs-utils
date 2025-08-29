@@ -47,6 +47,9 @@ import type { PaginationType } from '../constants/pagination.constants';
  * @template T - Type of the response data
  */
 interface ApiEndpointOptions<T> {
+    // API URL for tracing and documentation (required for better code tracing)
+    apiUrl: string;
+
     // Authentication
     auth?: AuthConfig | AuthConfig[];
     // Request configuration
@@ -666,6 +669,7 @@ const getPaginatedType = <T>(pagination: PaginationType | undefined, type: Type<
  */
 export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator => {
     const {
+        apiUrl,
         auth,
         body,
         cache,
@@ -698,6 +702,13 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
     if (deprecated) operationOptions.deprecated = deprecated;
 
     if (externalDocs) operationOptions.externalDocs = externalDocs;
+
+    // Add API URL to description for better tracing (required field)
+    const enhancedDescription = description
+        ? `${description}\n\n**API URL:** \`${apiUrl}\``
+        : `**API URL:** \`${apiUrl}\``;
+
+    operationOptions.description = enhancedDescription;
 
     decorators.push(ApiOperation(operationOptions));
 
@@ -953,6 +964,7 @@ export const ApiEndpoint = <T>(options: ApiEndpointOptions<T>): MethodDecorator 
  * @returns {MethodDecorator} Configured API endpoint decorator
  * @example
  * @ApiGetEndpoint({
+ *   apiUrl: 'api/v1/users/:id',
  *   summary: 'Get user by ID',
  *   response: UserDto,
  *   params: [{ name: 'id', type: 'uuid' }]
@@ -976,6 +988,7 @@ export const ApiGetEndpoint = <T>(
  * @returns {MethodDecorator} Configured API endpoint decorator
  * @example
  * @ApiPostEndpoint({
+ *   apiUrl: 'api/v1/users',
  *   summary: 'Create new user',
  *   response: UserDto,
  *   body: { type: CreateUserDto }
@@ -993,15 +1006,13 @@ export const ApiPostEndpoint = <T>(
 };
 
 /**
- * Shorthand for PUT endpoints
- */
-/**
  * Shorthand decorator for PUT endpoints with simplified response configuration.
  * @template T - Type of the response data
  * @param {Object} options - PUT endpoint configuration options
  * @returns {MethodDecorator} Configured API endpoint decorator
  * @example
  * @ApiPutEndpoint({
+ *   apiUrl: 'api/v1/users/:id',
  *   summary: 'Update user',
  *   response: UserDto,
  *   body: { type: UpdateUserDto }
@@ -1025,6 +1036,7 @@ export const ApiPutEndpoint = <T>(
  * @returns {MethodDecorator} Configured API endpoint decorator
  * @example
  * @ApiPatchEndpoint({
+ *   apiUrl: 'api/v1/users/:id',
  *   summary: 'Partially update user',
  *   response: UserDto,
  *   body: { type: PartialUpdateUserDto }
@@ -1048,6 +1060,7 @@ export const ApiPatchEndpoint = <T>(
  * @returns {MethodDecorator} Configured API endpoint decorator
  * @example
  * @ApiDeleteEndpoint({
+ *   apiUrl: 'api/v1/users/:id',
  *   summary: 'Delete user',
  *   params: [{ name: 'id', type: 'uuid' }]
  * })
