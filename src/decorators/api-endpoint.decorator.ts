@@ -40,6 +40,7 @@ import { ErrorResponseDto } from '../dto/error.response.dto';
 import { ApiCursorPaginatedResponseDto, ApiPaginatedResponseDto } from '../dto/paginated.response.dto';
 
 import type { PaginationType } from '../constants/pagination.constants';
+import type { ApiRoute } from '../types/api-route.type';
 
 /**
  * Enhanced options for configuring the ApiEndpoint decorator.
@@ -47,8 +48,9 @@ import type { PaginationType } from '../constants/pagination.constants';
  * @template T - Type of the response data
  */
 interface ApiEndpointOptions<T> {
-    // API URL for tracing and documentation (required for better code tracing)
-    apiUrl: string;
+    // API Route for tracing and documentation (required for better code tracing)
+    // Format: @METHOD /path/to/endpoint (e.g., @POST /api/v1/auth/register)
+    apiUrl: ApiRoute;
 
     // Authentication
     auth?: AuthConfig | AuthConfig[];
