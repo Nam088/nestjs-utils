@@ -1,10 +1,10 @@
-# @ecom-co/utils
+# nestjs-kit
 
 <div align="center">
 
-![Version](https://img.shields.io/npm/v/@ecom-co/utils)
-![Downloads](https://img.shields.io/npm/dm/@ecom-co/utils)
-![License](https://img.shields.io/npm/l/@ecom-co/utils)
+![Version](https://img.shields.io/npm/v/nestjs-kit)
+![Downloads](https://img.shields.io/npm/dm/nestjs-kit)
+![License](https://img.shields.io/npm/l/nestjs-kit)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)
 ![NestJS](https://img.shields.io/badge/NestJS-10.0+-red)
 
@@ -31,15 +31,15 @@
 ## 🚀 Installation
 
 ```bash
-npm install @ecom-co/utils
+npm install nestjs-kit
 ```
 
 ```bash
-yarn add @ecom-co/utils
+yarn add nestjs-kit
 ```
 
 ```bash
-pnpm add @ecom-co/utils
+pnpm add nestjs-kit
 ```
 
 ## ⚡ Quick Start
@@ -48,7 +48,7 @@ pnpm add @ecom-co/utils
 
 ```typescript
 import { Module } from '@nestjs/common';
-import { setUpSwagger } from '@ecom-co/utils';
+import { setUpSwagger } from 'nestjs-kit';
 
 @Module({
   imports: [],
@@ -119,7 +119,7 @@ import {
   EmailField, 
   NumberField, 
   BooleanField 
-} from '@ecom-co/utils';
+} from 'nestjs-kit';
 
 export class CreateUserDto {
   @StringField({ 
@@ -152,7 +152,7 @@ export class CreateUserDto {
 
 ```typescript
 import { Controller, Post, Body } from '@nestjs/common';
-import { ApiValidationEndpoint, AUTH_TYPE, HttpStatus } from '@ecom-co/utils';
+import { ApiValidationEndpoint, AUTH_TYPE, HttpStatus } from 'nestjs-kit';
 import { CreateUserDto, UserDto } from './dto';
 
 @Controller('users')
@@ -240,7 +240,7 @@ import {
   EnumField,
   PasswordField,
   CurrencyField
-} from '@ecom-co/utils';
+} from 'nestjs-kit';
 
 export class ProductDto {
   @StringField({ 
@@ -318,7 +318,7 @@ export class UpdateUserDto {
 #### Basic Usage
 
 ```typescript
-import { ApiEndpoint, AUTH_TYPE, PAGINATION_TYPE, HttpStatus } from '@ecom-co/utils';
+import { ApiEndpoint, AUTH_TYPE, PAGINATION_TYPE, HttpStatus } from 'nestjs-kit';
 
 @Controller('products')
 export class ProductController {
@@ -503,7 +503,7 @@ async createProduct(@Body() dto: CreateProductDto) {}
 #### API Response DTO
 
 ```typescript
-import { ApiResponseDto, ApiResponseData } from '@ecom-co/utils';
+import { ApiResponseDto, ApiResponseData } from 'nestjs-kit';
 
 // Create response DTO for User
 const UserResponseDto = ApiResponseDto(UserDto);
@@ -535,7 +535,7 @@ return ApiResponseData.create(
 #### Error Response DTO
 
 ```typescript
-import { ErrorResponseDto } from '@ecom-co/utils';
+import { ErrorResponseDto } from 'nestjs-kit';
 
 @ApiEndpoint({
   errors: [
@@ -562,7 +562,7 @@ import {
   ApiCursorPaginatedResponseData,
   Paging,
   CursorPaging
-} from '@ecom-co/utils';
+} from 'nestjs-kit';
 
 // Offset pagination
 const UserPaginatedResponseDto = ApiPaginatedResponseDto(UserDto);
@@ -742,7 +742,7 @@ const cursorPaging3 = CursorPaging.createWithAutoCalculation({
 #### Authentication Types
 
 ```typescript
-import { AUTH_TYPE } from '@ecom-co/utils';
+import { AUTH_TYPE } from 'nestjs-kit';
 
 // Available auth types
 AUTH_TYPE.JWT        // JWT Bearer token
@@ -829,7 +829,7 @@ AUTH_TYPE.COOKIE     // Cookie-based authentication
 #### Pagination Types
 
 ```typescript
-import { PAGINATION_TYPE } from '@ecom-co/utils';
+import { PAGINATION_TYPE } from 'nestjs-kit';
 
 PAGINATION_TYPE.OFFSET  // Offset-based pagination
 PAGINATION_TYPE.CURSOR  // Cursor-based pagination
@@ -838,7 +838,7 @@ PAGINATION_TYPE.CURSOR  // Cursor-based pagination
 #### Database Operators
 
 ```typescript
-import { OPERATOR } from '@ecom-co/utils';
+import { OPERATOR } from 'nestjs-kit';
 
 // Available operators for queries
 OPERATOR.EQ    // Equal
@@ -855,7 +855,7 @@ OPERATOR.NIN   // Not in array
 #### Pagination Types
 
 ```typescript
-import { PAGINATION_TYPE } from '@ecom-co/utils';
+import { PAGINATION_TYPE } from 'nestjs-kit';
 
 PAGINATION_TYPE.OFFSET  // Offset-based pagination
 PAGINATION_TYPE.CURSOR  // Cursor-based pagination
@@ -864,7 +864,7 @@ PAGINATION_TYPE.CURSOR  // Cursor-based pagination
 #### Database Operators
 
 ```typescript
-import { OPERATOR } from '@ecom-co/utils';
+import { OPERATOR } from 'nestjs-kit';
 
 // Available operators for queries
 OPERATOR.EQ    // Equal
@@ -883,7 +883,7 @@ OPERATOR.NIN   // Not in array
 #### HTTP Exception Filter
 
 ```typescript
-import { HttpExceptionFilter } from '@ecom-co/utils';
+import { HttpExceptionFilter } from 'nestjs-kit';
 import { Reflector } from '@nestjs/core';
 
 // In your main.ts
@@ -915,7 +915,7 @@ app.useGlobalFilters(
 Custom validation exception with structured error handling:
 
 ```typescript
-import { ValidationException } from '@ecom-co/utils';
+import { ValidationException } from 'nestjs-kit';
 
 // Manual validation
 if (!user.email) {
@@ -996,7 +996,7 @@ import {
   AUTH_TYPE,
   PAGINATION_TYPE,
   HttpStatus 
-} from '@ecom-co/utils';
+} from 'nestjs-kit';
 
 @Controller('products')
 export class ProductController {
@@ -1128,7 +1128,7 @@ import {
   CurrencyField,
   EnumField,
   ClassField
-} from '@ecom-co/utils';
+} from 'nestjs-kit';
 
 export class CreateProductDto {
   @StringField({ 
@@ -1228,7 +1228,7 @@ import {
   UUIDField,
   ArrayField,
   ClassField
-} from '@ecom-co/utils';
+} from 'nestjs-kit';
 
 export class CreateUserDto {
   @StringField({ 
@@ -1323,7 +1323,7 @@ export class UserProfileDto {
 import { 
   StringField, 
   FieldUtils 
-} from '@ecom-co/utils';
+} from 'nestjs-kit';
 
 export class AdvancedUserDto {
   @StringField({
@@ -1366,7 +1366,7 @@ import {
   BooleanField, 
   StringField, 
   ConditionalField 
-} from '@ecom-co/utils';
+} from 'nestjs-kit';
 
 export class OrderDto {
   @BooleanField()
@@ -1451,7 +1451,7 @@ setUpSwagger(app, {
 ### Validation Configuration
 
 ```typescript
-import { validationPipeConfig, getValidationPipeConfig } from '@ecom-co/utils';
+import { validationPipeConfig, getValidationPipeConfig } from 'nestjs-kit';
 
 // In your main.ts
 const app = await NestFactory.create(AppModule);
@@ -1481,7 +1481,7 @@ app.useGlobalPipes(
 ### Swagger Configuration
 
 ```typescript
-import { setUpSwagger } from '@ecom-co/utils';
+import { setUpSwagger } from 'nestjs-kit';
 
 // In your main.ts
 const app = await NestFactory.create(AppModule);

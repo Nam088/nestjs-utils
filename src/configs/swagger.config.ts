@@ -280,8 +280,6 @@ export const setUpSwagger = (app: NestApplication, options: SwaggerConfigOptions
         documentBuilder.addServer(`http://localhost:${port}`, 'Local');
     }
 
-    documentBuilder.addTag('example', 'Example endpoints').addTag('example-2', 'Second example module');
-
     const openApiConfig = documentBuilder.build();
 
     const documentOptions: SwaggerDocumentOptions = {
