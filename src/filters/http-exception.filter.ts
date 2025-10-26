@@ -9,7 +9,6 @@ import { get, isArray, isObject, isString, set, size } from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
 
 import { ErrorResponseDto } from '../dto/error.response.dto';
-import { ValidationException } from '../exeption';
 
 import type { Request, Response } from 'express';
 
@@ -134,42 +133,27 @@ export class HttpExceptionFilter implements ExceptionFilter {
         correlationId: string,
         exception: unknown,
     ): ErrorResponseDto {
-        // Handle ValidationException specifically
-        if (exception instanceof ValidationException) {
-            const { url } = request;
-            const validationMessages = exception.getValidationMessages();
-            const fieldErrors: Record<string, Record<string, string>> = exception.getFieldErrors();
-
+        // Handle Zod validation errors (from BadRequestException with errors array)
+        if (
+            exception instanceof HttpException &&
+            status === HttpStatus.BAD_REQUEST &&
+            typeof errorResponse === 'object' &&
+            'errors' in errorResponse &&
+            isArray(errorResponse.errors)
+        ) {
             const basePayload: ErrorResponseDto = {
                 error: 'Validation failed',
-                errors: validationMessages,
-                fieldErrors,
-                message: 'Validation failed',
-                path: url,
+                errors: errorResponse.errors,
+                message: isString(errorResponse.message) ? errorResponse.message : 'Validation failed',
+                path: request.url,
                 statusCode: status,
                 timestamp: new Date().toISOString(),
                 requestId: correlationId,
             };
 
-            // Sanitize validation errors in production
+            // Sanitize in production
             if (!this.isDevelopment && this.enableSanitization) {
                 basePayload.message = this.sanitizeString(basePayload.message);
-
-                if (basePayload.errors) {
-                    basePayload.errors = basePayload.errors.map((error) => this.sanitizeString(error));
-                }
-
-                if (basePayload.fieldErrors) {
-                    Object.keys(basePayload.fieldErrors).forEach((property) => {
-                        const fieldErrors = get(basePayload.fieldErrors, property);
-
-                        if (fieldErrors) {
-                            Object.keys(fieldErrors).forEach((constraint) => {
-                                set(fieldErrors, constraint, this.sanitizeString(get(fieldErrors, constraint)));
-                            });
-                        }
-                    });
-                }
             }
 
             return basePayload;

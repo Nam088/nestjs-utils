@@ -34,7 +34,8 @@
     "class-validator": "^0.14.2",
     "lodash": "^4.17.21",
     "nestjs-eslint": "^2.1.16",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
