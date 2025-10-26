@@ -1,14 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-import { IsArray, IsObject, IsOptional, IsString, ValidateNested } from 'class-validator';
-
-import { Type } from 'class-transformer';
-
 import { OrderDto } from './order.dto';
 
 /**
  * Base Data Transfer Object for query operations.
  * Provides common query functionality like ordering and field selection.
+ * Use with Zod schema for validation.
  */
 class BaseQueryDto {
     /**
@@ -18,10 +15,6 @@ class BaseQueryDto {
         type: [OrderDto],
         description: 'Array of fields to sort by.',
     })
-    @IsArray()
-    @IsOptional()
-    @Type(() => OrderDto)
-    @ValidateNested({ each: true })
     order?: OrderDto[];
 
     /**
@@ -32,9 +25,6 @@ class BaseQueryDto {
         description: 'Array of field names to include in the response.',
         example: ['id', 'email', 'firstName', 'lastName'],
     })
-    @IsArray()
-    @IsOptional()
-    @IsString({ each: true })
     select?: string[];
 }
 
@@ -62,8 +52,6 @@ export const createCustomQueryDto = (filterExample: Record<string, unknown>) => 
             description: 'JsonLogic rule for filtering records.',
             example: filterExample,
         })
-        @IsObject()
-        @IsOptional()
         filter?: Record<string, unknown>;
     }
 
@@ -75,3 +63,4 @@ export const createCustomQueryDto = (filterExample: Record<string, unknown>) => 
  * Provides filtering, ordering, and field selection capabilities.
  */
 export class QueryDto extends createCustomQueryDto({ and: [{ '==': [{ var: 'email' }, 'test@example.com'] }] }) {}
+

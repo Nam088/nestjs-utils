@@ -1,6 +1,6 @@
 import { Body, Param, Query } from '@nestjs/common';
 
-import type { ZodSchema } from 'zod';
+import type { ZodType } from 'zod';
 
 import { ZodValidationPipe } from '../pipes/zod-validation.pipe';
 
@@ -16,7 +16,7 @@ import { ZodValidationPipe } from '../pipes/zod-validation.pipe';
  * }
  * ```
  */
-export const ZodBody = (schema: ZodSchema) => Body(new ZodValidationPipe(schema));
+export const ZodBody = (schema: ZodType) => Body(new ZodValidationPipe(schema));
 
 /**
  * Helper function for validating route params with Zod schema
@@ -30,7 +30,7 @@ export const ZodBody = (schema: ZodSchema) => Body(new ZodValidationPipe(schema)
  * }
  * ```
  */
-export const ZodParam = (schema: ZodSchema) => Param(new ZodValidationPipe(schema));
+export const ZodParam = (schema: ZodType) => Param(new ZodValidationPipe(schema));
 
 /**
  * Helper function for validating query params with Zod schema
@@ -44,4 +44,4 @@ export const ZodParam = (schema: ZodSchema) => Param(new ZodValidationPipe(schem
  * }
  * ```
  */
-export const ZodQuery = (schema: ZodSchema) => Query(new ZodValidationPipe(schema));
+export const ZodQuery = (schema: ZodType) => Query(new ZodValidationPipe(schema));
