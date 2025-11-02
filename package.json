@@ -1,16 +1,16 @@
 {
   "name": "@nam088/nestjs-kit",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "Utils library for e-commerce platform",
   "author": "Nam077",
   "license": "ISC",
   "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "module": "dist/esm/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
+      "import": "./dist/esm/index.js",
       "require": "./dist/index.js"
     }
   },
@@ -22,8 +22,10 @@
     "url": "https://github.com/Nam088/nestjs-kit.git"
   },
   "scripts": {
-    "build": "tsup",
-    "build:watch": "tsup --watch",
+    "build": "npm run build:cjs && npm run build:esm",
+    "build:cjs": "tsc -p tsconfig.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:watch": "tsc -p tsconfig.json --watch",
     "clean": "rm -rf dist",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
