@@ -16,6 +16,11 @@ export default defineConfig({
         '@nestjs/swagger',
         'reflect-metadata',
         'rxjs',
+        // Mark all dependencies as external (won't be bundled)
+        'class-transformer',
+        'lodash',
+        'uuid',
+        'zod',
     ],
     // Keep dependencies as external (won't be bundled)
     noExternal: [],

@@ -1,6 +1,6 @@
 import { Type } from '@nestjs/common';
 
-import { ApiProperty, ApiPropertyOptions } from '@nestjs/swagger';
+import { ApiExtraModels, ApiProperty, ApiPropertyOptions, getSchemaPath } from '@nestjs/swagger';
 
 /**
  * Interface for the standardized API response structure.
@@ -29,16 +29,26 @@ export const ApiResponseDto = <T>(dataType: null | Type<T>): Type<IApiResponse<T
     /**
      * This function determines the correct options for the @ApiProperty decorator
      * based on whether a data type is provided.
+     * Uses $ref schema to avoid circular dependency issues with Swagger.
      * @returns {ApiPropertyOptions} The configured API property options
      */
     const getApiPropertyOptions = (): ApiPropertyOptions => {
         if (dataType) {
-            // If we have a data type, specify it
-            return { type: dataType, nullable: true };
+            // Use oneOf with $ref to properly reference the schema
+            // This prevents Swagger from trying to inline the schema and causing circular dependency
+            return {
+                description: 'The response data payload',
+                nullable: true,
+                oneOf: [{ $ref: getSchemaPath(dataType) }],
+            };
         }
 
         // If data type is null, we just indicate it can be null and provide an example
-        return { example: null, nullable: true };
+        return {
+            description: 'No data payload',
+            example: null,
+            nullable: true,
+        };
     };
 
     /**
@@ -60,6 +70,11 @@ export const ApiResponseDto = <T>(dataType: null | Type<T>): Type<IApiResponse<T
     const uniqueClassName = `ApiResponseOf${dataType ? dataType.name : 'Null'}`;
 
     Object.defineProperty(ApiResponse, 'name', { value: uniqueClassName });
+
+    // Register the data type with Swagger to prevent circular dependency issues
+    if (dataType) {
+        ApiExtraModels(dataType)(ApiResponse);
+    }
 
     return ApiResponse;
 };

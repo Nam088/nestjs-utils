@@ -1,6 +1,6 @@
 import { Type } from '@nestjs/common';
 
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiExtraModels, ApiProperty, getSchemaPath } from '@nestjs/swagger';
 
 import { Exclude, Expose } from 'class-transformer';
 
@@ -287,7 +287,11 @@ export class ApiPaginatedResponseData<T> implements IApiPaginatedResponse<T> {
  */
 export const ApiPaginatedResponseDto = <T>(itemType: Type<T>) => {
     class PaginatedResponse implements IApiPaginatedResponse<T> {
-        @ApiProperty({ type: [itemType] })
+        @ApiProperty({
+            type: 'array',
+            description: 'Array of data items',
+            items: { $ref: getSchemaPath(itemType) },
+        })
         data!: T[];
 
         @ApiProperty({ description: 'A descriptive message for the result.', example: 'Success' })
@@ -304,6 +308,9 @@ export const ApiPaginatedResponseDto = <T>(itemType: Type<T>) => {
     Object.defineProperty(PaginatedResponse, 'name', {
         value: `ApiPaginatedResponseOf${itemType.name}`,
     });
+
+    // Register the item type with Swagger to prevent circular dependency issues
+    ApiExtraModels(itemType, Paging)(PaginatedResponse);
 
     return PaginatedResponse;
 };
@@ -649,7 +656,11 @@ export const ApiCursorPaginatedResponseDto = <T>(itemType: Type<T>) => {
         @ApiProperty({ type: () => CursorPaging })
         cursorPaging!: CursorPaging;
 
-        @ApiProperty({ type: [itemType] })
+        @ApiProperty({
+            type: 'array',
+            description: 'Array of data items',
+            items: { $ref: getSchemaPath(itemType) },
+        })
         data!: T[];
 
         @ApiProperty({ example: 'Success' })
@@ -660,6 +671,9 @@ export const ApiCursorPaginatedResponseDto = <T>(itemType: Type<T>) => {
     }
 
     Object.defineProperty(CursorPaginatedResponse, 'name', { value: `ApiCursorPaginatedResponseOf${itemType.name}` });
+
+    // Register the item type with Swagger to prevent circular dependency issues
+    ApiExtraModels(itemType, CursorPaging)(CursorPaginatedResponse);
 
     return CursorPaginatedResponse;
 };
