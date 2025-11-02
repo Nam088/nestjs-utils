@@ -1,18 +1,18 @@
 // @ts-check
 // Using @ecom-co/eslint library for clean and maintainable configuration
-import { createNestJSConfig } from '@ecom-co/eslint/nestjs';
+import { createNestJSConfig } from 'nestjs-eslint';
 
 export default createNestJSConfig({
   tsconfigRootDir: import.meta.dirname,
-  project: './tsconfig.json',
-  
+  project: ['./tsconfig.json', './tsconfig.spec.json'],
+
   // Custom perfectionist configuration
   perfectionist: {
     enabled: true,
     type: 'recommended-natural', // or 'recommended-natural', 'recommended-line-length', 'recommended-custom'
     partitionByComment: false, // Enable comment-based partitioning
   },
-  
+
   // Additional ignore patterns for this project
   ignores: [
     'dist/**',
@@ -21,55 +21,63 @@ export default createNestJSConfig({
     '*.min.js',
     'node_modules/**',
   ],
-  
+
   // Custom project-specific rules
   rules: {
     // Allow console.log in development
     'no-console': 'warn',
-    
+
     // Relax some strict rules for development
     '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/no-unsafe-assignment': 'warn',
     '@typescript-eslint/no-unsafe-call': 'warn',
     '@typescript-eslint/no-unsafe-member-access': 'warn',
     '@typescript-eslint/no-unsafe-return': 'warn',
-    
+    '@typescript-eslint/no-unsafe-enum-comparison': 'warn',
+
     // Adjust complexity limits for development
     'complexity': ['warn', 15],
     'max-lines': ['warn', 800],
     'max-lines-per-function': ['warn', 150],
-    
-    // Relax JSDoc requirements for development
-    'jsdoc/require-jsdoc': 'off',
-    'jsdoc/require-param': 'off',
-    'jsdoc/require-returns': 'off',
-    'lodash/prefer-lodash-method': 'off'
-  },
-  
+
+  // Relax JSDoc requirements for development
+  'jsdoc/require-jsdoc': 'off',
+  'jsdoc/require-param': 'off',
+  'jsdoc/require-returns': 'off',
+  'lodash/prefer-lodash-method': 'off',
+
+  // Relax rules for test files
+  '@typescript-eslint/unbound-method': 'off',
+  '@typescript-eslint/no-empty-function': 'off',
+  '@typescript-eslint/no-require-imports': 'off',
+  'max-nested-callbacks': 'off',
+  'security/detect-non-literal-regexp': 'off',
+},
+
   // Custom import groups for this project
   importGroups: {
     groups: [
       // Built-in Node.js modules
       'builtin',
-      
+
       // External packages (npm packages)
       'external',
-      
+
       // Internal modules with specific patterns
       'internal',
-      
+
       // Parent directory imports
       'parent',
-      
+
       // Sibling directory imports
       'sibling',
-      
+
       // Index files
       'index',
-      
+
       // Type imports
       'type',
-      
+
       // Unknown imports
       'unknown',
     ],
@@ -110,7 +118,7 @@ export default createNestJSConfig({
         group: 'external',
         position: 'before',
       },
-      
+
       // Database and ORM related
       {
         pattern: '@prisma/client',
@@ -127,7 +135,7 @@ export default createNestJSConfig({
         group: 'external',
         position: 'before',
       },
-      
+
       // Validation and transformation
       {
         pattern: 'class-validator',
@@ -144,7 +152,7 @@ export default createNestJSConfig({
         group: 'external',
         position: 'before',
       },
-      
+
       // Testing libraries
       {
         pattern: '@nestjs/testing',
@@ -161,7 +169,7 @@ export default createNestJSConfig({
         group: 'external',
         position: 'before',
       },
-      
+
       // Utility libraries
       {
         pattern: 'lodash',
@@ -178,7 +186,7 @@ export default createNestJSConfig({
         group: 'external',
         position: 'before',
       },
-      
+
       // Company-specific internal modules
       {
         pattern: '@ecom/**',
@@ -195,7 +203,7 @@ export default createNestJSConfig({
         group: 'internal',
         position: 'before',
       },
-      
+
       // Project-specific internal modules
       {
         pattern: '@/*',
@@ -207,7 +215,7 @@ export default createNestJSConfig({
         group: 'internal',
         position: 'after',
       },
-      
+
       // Relative imports for specific directories
       {
         pattern: './**/dto/**',
@@ -269,7 +277,7 @@ export default createNestJSConfig({
         group: 'internal',
         position: 'after',
       },
-      
+
       // Type imports (should come after regular imports)
       {
         pattern: '**/*.types',

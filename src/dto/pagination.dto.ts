@@ -15,12 +15,12 @@ export class PaginationDto {
      * Number of items per page.
      * @default 10
      */
-    @ApiPropertyOptional({ 
-        type: Number, 
-        default: 10, 
-        minimum: MIN_LIMIT,
+    @ApiPropertyOptional({
+        type: Number,
+        default: 10,
+        description: 'Number of items per page',
         maximum: MAX_LIMIT,
-        description: 'Number of items per page' 
+        minimum: MIN_LIMIT,
     })
     limit? = 10;
 
@@ -28,11 +28,11 @@ export class PaginationDto {
      * Page number (1-based).
      * @default 1
      */
-    @ApiPropertyOptional({ 
-        type: Number, 
-        default: 1, 
+    @ApiPropertyOptional({
+        type: Number,
+        default: 1,
+        description: 'Page number',
         minimum: 1,
-        description: 'Page number' 
     })
     page? = 1;
 
@@ -42,4 +42,3 @@ export class PaginationDto {
     @ApiPropertyOptional({ description: 'Search query string', example: 'Myriad Pro' })
     q?: string;
 }
-

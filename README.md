@@ -1,350 +1,129 @@
-# nestjs-kit
+# @nam088/nestjs-kit
 
 <div align="center">
 
-![Version](https://img.shields.io/npm/v/nestjs-kit)
-![Downloads](https://img.shields.io/npm/dm/nestjs-kit)
-![License](https://img.shields.io/npm/l/nestjs-kit)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)
-![NestJS](https://img.shields.io/badge/NestJS-10.0+-red)
+[![npm version](https://img.shields.io/npm/v/@nam088/nestjs-kit.svg)](https://www.npmjs.com/package/@nam088/nestjs-kit)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)](https://www.typescriptlang.org/)
+[![NestJS](https://img.shields.io/badge/NestJS-11.x-E0234E)](https://nestjs.com/)
 
-**A comprehensive utility library for e-commerce platform development with NestJS**
+A comprehensive utility library for NestJS applications providing decorators, DTOs, filters, pipes, and configurations for building robust REST APIs.
 
-[Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Examples](#-examples)
+[Features](#features) • [Installation](#installation) • [Usage](#usage) • [API Documentation](#api-documentation)
 
 </div>
 
 ---
 
-## ✨ Features
+## 📦 Features
 
-- 🎯 **Type-Safe Validation Decorators** - Comprehensive field validation with automatic Swagger integration
-- 📚 **API Documentation** - Streamlined Swagger documentation with `@ApiEndpoint` decorators
-- 🔍 **Validation Error Documentation** - Auto-generate validation error examples in Swagger
-- 🏗️ **Standardized DTOs** - Consistent API response and error handling structures
-- 🔐 **Multi-Provider Authentication** - Support for multiple JWT, API Key, OAuth2, Basic, and Cookie auth providers
-- 📄 **Pagination Utilities** - Offset and cursor-based pagination support
-- 🛡️ **Error Handling** - Global exception filters with standardized responses
-- 🎨 **Modern UI Components** - Beautiful and responsive design patterns
-- ⚡ **Performance Optimized** - Lightweight and efficient utilities
+### 🎨 Decorators
+- **`@ApiEndpoint`** - Comprehensive Swagger documentation decorator with authentication, validation, pagination, and error handling
+- **`@ClampNumber`** - Automatically clamps numeric values between min/max bounds
+- **`@ZodBody`, `@ZodParam`, `@ZodQuery`** - Zod schema validation decorators
+
+### 📋 DTOs
+- **Standardized Response DTOs** - `ApiResponseDto`, `ErrorResponseDto`, `PaginatedResponseDto`
+- **Pagination & Query DTOs** - `PaginationDto`, `QueryDto`, `OrderDto`
+- **Type-safe** - Full TypeScript support with generics
+
+### 🛡️ Filters
+- **`HttpExceptionFilter`** - Global exception filter with:
+  - Automatic error sanitization (remove sensitive data)
+  - Request ID tracking & correlation
+  - Rate limit tracking
+  - Error metrics integration
+  - Development/Production modes
+
+### 🔧 Pipes
+- **`ZodValidationPipe`** - Validate request data using Zod schemas with detailed error messages
+
+### ⚙️ Configurations
+- **`setUpSwagger`** - Elegant Swagger UI setup with custom branding and multiple authentication schemes
+
+### 📊 Constants
+- **Authentication Types** - `AUTH_TYPE` (JWT, API Key, OAuth2, Basic, Cookie)
+- **Pagination Types** - `PAGINATION_TYPE` (Offset, Cursor)
+
+---
 
 ## 🚀 Installation
 
 ```bash
-npm install nestjs-kit
+npm install @nam088/nestjs-kit
 ```
+
+### Peer Dependencies
 
 ```bash
-yarn add nestjs-kit
+npm install @nestjs/common@^11 @nestjs/core@^11 @nestjs/swagger@^11 zod@^4
 ```
 
-```bash
-pnpm add nestjs-kit
-```
+---
 
-## ⚡ Quick Start
+## 📖 Usage
 
-### 1. Basic Setup
+### 1. Swagger Documentation with `@ApiEndpoint`
 
-```typescript
-import { Module } from '@nestjs/common';
-import { setUpSwagger } from 'nestjs-kit';
-
-@Module({
-  imports: [],
-  controllers: [],
-  providers: [],
-})
-export class AppModule {}
-
-// In main.ts
-const app = await NestFactory.create(AppModule);
-
-// Setup Swagger with multiple authentication providers
-setUpSwagger(app, {
-  port: 3000,
-  title: 'E-commerce API',
-  description: 'Comprehensive e-commerce platform API',
-  version: '1.0.0',
-  nodeEnv: 'development',
-  servers: [
-    { url: 'http://localhost:3000', description: 'Local Development' },
-    { url: 'https://api-staging.example.com', description: 'Staging Environment' },
-    { url: 'https://api.example.com', description: 'Production Environment' },
-  ],
-  jwt: {
-    providers: [
-      {
-        name: 'access-token',
-        description: 'JWT Access Token for regular users',
-      },
-      {
-        name: 'admin-token',
-        description: 'JWT Admin Token for administrative access',
-      },
-    ],
-  },
-  apiKey: {
-    providers: [
-      {
-        name: 'internal-key',
-        in: 'header',
-        keyName: 'X-Internal-Key',
-        description: 'Internal API Key for service-to-service communication',
-      },
-    ],
-  },
-  oauth2: {
-    providers: [
-      {
-        name: 'google',
-        authorizationUrl: 'https://accounts.google.com/oauth/authorize',
-        tokenUrl: 'https://oauth2.googleapis.com/token',
-        scopes: {
-          'https://www.googleapis.com/auth/userinfo.profile': 'View profile',
-          'https://www.googleapis.com/auth/userinfo.email': 'View email',
-        },
-        description: 'Google OAuth2 authentication',
-      },
-    ],
-  },
-});
-```
-
-### 2. Create Your First DTO
-
-```typescript
-import { 
-  StringField, 
-  EmailField, 
-  NumberField, 
-  BooleanField 
-} from 'nestjs-kit';
-
-export class CreateUserDto {
-  @StringField({ 
-    minLength: 2, 
-    maxLength: 50,
-    description: 'User full name'
-  })
-  name!: string;
-
-  @EmailField({ 
-    description: 'User email address' 
-  })
-  email!: string;
-
-  @NumberField({ 
-    min: 18, 
-    max: 100,
-    description: 'User age'
-  })
-  age!: number;
-
-  @BooleanField({ 
-    description: 'Whether user is active' 
-  })
-  isActive!: boolean;
-}
-```
-
-### 3. Create Your First Controller
-
-```typescript
-import { Controller, Post, Body } from '@nestjs/common';
-import { ApiValidationEndpoint, AUTH_TYPE, HttpStatus } from 'nestjs-kit';
-import { CreateUserDto, UserDto } from './dto';
-
-@Controller('users')
-export class UserController {
-  @ApiValidationEndpoint({
-    summary: 'Create a new user',
-    description: 'Creates a new user account with the provided information',
-    tags: ['Users'],
-    response: UserDto,
-    auth: { type: AUTH_TYPE.JWT, provider: 'access-token', required: true },
-    body: { type: CreateUserDto },
-    errors: [HttpStatus.CONFLICT],
-    validation: {
-      errorExamples: [
-        { field: 'name', constraint: 'isNotEmpty', message: 'name should not be empty' },
-        { field: 'email', constraint: 'isEmail', message: 'email must be an email' }
-      ]
-    }
-  })
-  @Post()
-  async createUser(@Body() createUserDto: CreateUserDto) {
-    // Your implementation here
-    return { message: 'User created successfully' };
-  }
-
-  // Example with multiple authentication providers
-  @ApiValidationEndpoint({
-    summary: 'Admin user management',
-    description: 'Admin-only endpoint for user management',
-    tags: ['Users', 'Admin'],
-    response: UserDto,
-    auth: [
-      { type: AUTH_TYPE.JWT, provider: 'admin-token', required: true },
-      { type: AUTH_TYPE.API_KEY, provider: 'internal-key', required: false },
-    ],
-    body: { type: CreateUserDto },
-    errors: [HttpStatus.FORBIDDEN, HttpStatus.CONFLICT],
-  })
-  @Post('admin')
-  async createUserAsAdmin(@Body() createUserDto: CreateUserDto) {
-    // Admin implementation
-    return { message: 'User created by admin' };
-  }
-}
-```
-
-## 📚 Documentation
-
-### 🎯 Validation Decorators
-
-#### Basic Field Types
-
-| Decorator | Type | Description |
-|-----------|------|-------------|
-| `@StringField()` | `string` | Text validation with length constraints |
-| `@NumberField()` | `number` | Numeric validation with min/max values |
-| `@BooleanField()` | `boolean` | Boolean validation with transformation |
-| `@EmailField()` | `string` | Email validation with format checking |
-| `@UUIDField()` | `string` | UUID v4 validation |
-| `@DateField()` | `Date` | Date validation with range constraints |
-
-#### Advanced Field Types
-
-| Decorator | Type | Description |
-|-----------|------|-------------|
-| `@ArrayField()` | `T[]` | Array validation with size constraints |
-| `@EnumField()` | `enum` | Enum validation with type safety |
-| `@ClassField()` | `class` | Nested object validation |
-| `@PasswordField()` | `string` | Password validation with custom patterns |
-| `@PhoneField()` | `string` | Phone number validation |
-| `@JsonField()` | `object` | JSON string validation |
-| `@FileField()` | `File` | File upload validation |
-| `@GeoField()` | `number` | Geographic coordinates validation |
-| `@CreditCardField()` | `string` | Credit card number validation |
-| `@CurrencyField()` | `number` | Currency amount validation |
-
-#### Usage Examples
-
-```typescript
-import { 
-  StringField, 
-  NumberField, 
-  ArrayField, 
-  DateField,
-  EnumField,
-  PasswordField,
-  CurrencyField
-} from 'nestjs-kit';
-
-export class ProductDto {
-  @StringField({ 
-    minLength: 3, 
-    maxLength: 100,
-    description: 'Product name',
-    toLowerCase: true,
-    trim: true
-  })
-  name!: string;
-
-  @NumberField({ 
-    min: 0,
-    max: 1000000,
-    isPositive: true,
-    description: 'Product price'
-  })
-  price!: number;
-
-  @ArrayField(() => String, { 
-    minSize: 1, 
-    maxSize: 10,
-    uniqueItems: true,
-    description: 'Product tags'
-  })
-  tags!: string[];
-
-  @DateField({ 
-    minDate: new Date('2020-01-01'),
-    description: 'Product creation date'
-  })
-  createdAt!: Date;
-
-  @EnumField(() => ProductStatus, { 
-    description: 'Product status' 
-  })
-  status!: ProductStatus;
-
-  @PasswordField(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/, {
-    description: 'Strong password with special characters'
-  })
-  password!: string;
-
-  @CurrencyField({ 
-    min: 0,
-    description: 'Product price in USD'
-  })
-  priceUSD!: number;
-}
-```
-
-#### Optional Fields
-
-```typescript
-export class UpdateUserDto {
-  @StringFieldOptional({ 
-    minLength: 2, 
-    maxLength: 50 
-  })
-  name?: string;
-
-  @EmailFieldOptional()
-  email?: string;
-
-  @NumberFieldOptional({ 
-    min: 18, 
-    max: 100 
-  })
-  age?: number;
-}
-```
-
-### 📚 API Documentation Decorators
+The `@ApiEndpoint` decorator provides a powerful way to document your API endpoints with comprehensive Swagger documentation.
 
 #### Basic Usage
 
 ```typescript
-import { ApiEndpoint, AUTH_TYPE, PAGINATION_TYPE, HttpStatus } from 'nestjs-kit';
+import { Controller, Get, Post, Body, Param } from '@nestjs/common';
+import { ApiEndpoint, AUTH_TYPE } from '@nam088/nestjs-kit';
+import { HttpStatus } from '@nestjs/common';
 
-@Controller('products')
-export class ProductController {
+@Controller('users')
+export class UserController {
+  @Get(':id')
   @ApiEndpoint({
-    summary: 'Get all products',
-    description: 'Retrieve a paginated list of products with filtering options',
-    tags: ['Products'],
-    responses: { 
-      [HttpStatus.OK]: { 
-        type: ProductDto, 
-        description: 'List of products' 
-      } 
+    apiUrl: '@GET /api/v1/users/:id',
+    summary: 'Get user by ID',
+    description: 'Retrieves a single user by their unique identifier',
+    tags: ['Users'],
+    auth: { type: AUTH_TYPE.JWT, required: true },
+    params: [{ name: 'id', type: 'uuid', description: 'User ID' }],
+    responses: {
+      [HttpStatus.OK]: {
+        type: UserDto,
+        description: 'User retrieved successfully',
+      },
     },
-    paginationType: PAGINATION_TYPE.OFFSET,
-    queries: [
-      { name: 'search', type: 'string', description: 'Search term' },
-      { name: 'category', type: 'string', enum: ['electronics', 'clothing', 'books'] },
-      { name: 'minPrice', type: 'number', description: 'Minimum price filter' },
-      { name: 'maxPrice', type: 'number', description: 'Maximum price filter' }
-    ],
-    auth: { type: AUTH_TYPE.JWT, required: false },
-    includeCommonErrors: true
+    includeCommonErrors: true,
   })
-  @Get()
-  async getProducts() {
-    // Implementation
+  async findOne(@Param('id') id: string) {
+    return this.userService.findOne(id);
+  }
+
+  @Post()
+  @ApiEndpoint({
+    apiUrl: '@POST /api/v1/users',
+    summary: 'Create new user',
+    description: 'Creates a new user account',
+    tags: ['Users'],
+    body: {
+      type: CreateUserDto,
+      description: 'User creation data',
+      required: true,
+    },
+    responses: {
+      [HttpStatus.CREATED]: {
+        type: UserDto,
+        description: 'User created successfully',
+      },
+    },
+    validation: {
+      includeValidationErrors: true,
+      errorExamples: [
+        { field: 'email', constraint: 'isEmail', message: 'email must be a valid email' },
+        { field: 'password', constraint: 'minLength', message: 'password must be at least 8 characters' },
+      ],
+    },
+    includeCommonErrors: true,
+  })
+  async create(@Body() dto: CreateUserDto) {
+    return this.userService.create(dto);
   }
 }
 ```
@@ -352,1304 +131,622 @@ export class ProductController {
 #### Shorthand Decorators
 
 ```typescript
+import { ApiGetEndpoint, ApiPostEndpoint, ApiPatchEndpoint, ApiDeleteEndpoint } from '@nam088/nestjs-kit';
+
 // GET endpoint
-@ApiGetEndpoint({
-  summary: 'Get product by ID',
-  description: 'Retrieve a specific product by its unique identifier',
-  tags: ['Products'],
-  response: ProductDto,
-  params: [{ name: 'id', type: 'uuid', description: 'Product ID' }],
-  auth: { type: AUTH_TYPE.JWT, required: false },
-  errors: [HttpStatus.NOT_FOUND]
-})
 @Get(':id')
-async getProduct(@Param('id') id: string) {}
-
-// POST endpoint
-@ApiPostEndpoint({
-  summary: 'Create new product',
-  description: 'Create a new product with the provided information',
-  tags: ['Products'],
-  response: ProductDto,
-  body: { type: CreateProductDto, description: 'Product creation data' },
-  auth: { type: AUTH_TYPE.JWT, required: true },
-  errors: [HttpStatus.CONFLICT, HttpStatus.BAD_REQUEST]
+@ApiGetEndpoint({
+  apiUrl: '@GET /api/v1/users/:id',
+  summary: 'Get user',
+  response: UserDto,
+  params: [{ name: 'id', type: 'uuid' }],
 })
+async findOne(@Param('id') id: string) {}
+
+// POST endpoint (automatically sets 201 status)
 @Post()
-async createProduct(@Body() dto: CreateProductDto) {}
-
-// PUT endpoint
-@ApiPutEndpoint({
-  summary: 'Update product',
-  description: 'Update an existing product',
-  tags: ['Products'],
-  response: ProductDto,
-  body: { type: UpdateProductDto },
-  params: [{ name: 'id', type: 'uuid' }],
-  auth: { type: AUTH_TYPE.JWT, required: true },
-  errors: [HttpStatus.NOT_FOUND, HttpStatus.BAD_REQUEST]
-})
-@Put(':id')
-async updateProduct(@Param('id') id: string, @Body() dto: UpdateProductDto) {}
-
-// DELETE endpoint
-@ApiDeleteEndpoint({
-  summary: 'Delete product',
-  description: 'Permanently delete a product',
-  tags: ['Products'],
-  params: [{ name: 'id', type: 'uuid' }],
-  auth: { type: AUTH_TYPE.JWT, required: true },
-  errors: [HttpStatus.NOT_FOUND]
-})
-@Delete(':id')
-async deleteProduct(@Param('id') id: string) {}
-
-// Validation endpoint with error documentation
-@ApiValidationEndpoint({
-  summary: 'Create user with validation',
+@ApiPostEndpoint({
+  apiUrl: '@POST /api/v1/users',
+  summary: 'Create user',
   response: UserDto,
   body: { type: CreateUserDto },
-  validation: {
-    errorExamples: [
-      { field: 'email', constraint: 'isEmail', message: 'email must be an email' },
-      { field: 'password', constraint: 'minLength', message: 'password must be longer than or equal to 8 characters' }
-    ]
-  }
 })
-@Post()
-async createUser(@Body() dto: CreateUserDto) {}
+async create(@Body() dto: CreateUserDto) {}
+
+// DELETE endpoint (automatically sets 204 status)
+@Delete(':id')
+@ApiDeleteEndpoint({
+  apiUrl: '@DELETE /api/v1/users/:id',
+  summary: 'Delete user',
+  params: [{ name: 'id', type: 'uuid' }],
+})
+async delete(@Param('id') id: string) {}
 ```
 
-#### Advanced Configuration
+#### Paginated Endpoints
 
 ```typescript
-@ApiEndpoint({
-  summary: 'Advanced product search',
-  description: 'Search products with complex filtering and sorting',
-  tags: ['Products'],
-  responses: { 
-    [HttpStatus.OK]: { 
-      type: ProductDto, 
-      description: 'Filtered products' 
-    } 
+import { ApiPaginatedEndpoint, PAGINATION_TYPE, PaginationDto } from '@nam088/nestjs-kit';
+
+@Get()
+@ApiPaginatedEndpoint({
+  apiUrl: '@GET /api/v1/users',
+  summary: 'List users with pagination',
+  tags: ['Users'],
+  paginationType: PAGINATION_TYPE.OFFSET,
+  responses: {
+    [HttpStatus.OK]: {
+      type: UserDto,
+      isArray: true,
+      description: 'Paginated list of users',
+    },
   },
-  paginationType: PAGINATION_TYPE.CURSOR,
-  queries: [
-    { name: 'q', type: 'string', description: 'Search query' },
-    { name: 'category', type: 'string', enum: ['electronics', 'clothing', 'books'] },
-    { name: 'brand', type: 'string' },
-    { name: 'minPrice', type: 'number' },
-    { name: 'maxPrice', type: 'number' },
-    { name: 'inStock', type: 'boolean' },
-    { name: 'sortBy', type: 'string', enum: ['name', 'price', 'createdAt'] },
-    { name: 'sortOrder', type: 'string', enum: ['asc', 'desc'] }
-  ],
-  auth: { type: AUTH_TYPE.JWT, required: false },
-  rateLimit: {
-    limit: 100,
-    window: '1h',
-    message: 'Too many requests, please try again later'
-  },
-  cache: {
-    ttl: 300,
-    description: 'Cache results for 5 minutes'
-  },
-  includeCommonErrors: true,
-  validation: {
-    includeValidationErrors: true,
-    errorExamples: [
-      { field: 'search', constraint: 'isNotEmpty', message: 'search should not be empty' },
-      { field: 'minPrice', constraint: 'isPositive', message: 'minPrice must be a positive number' }
-    ]
-  }
 })
-@Get('search')
-async searchProducts() {
-  // Implementation
+async findAll(@Query() pagination: PaginationDto) {
+  return this.userService.findAll(pagination);
 }
 ```
 
-#### Validation Error Documentation
+#### Multiple Authentication Types
 
 ```typescript
-// With custom validation error examples
-@ApiValidationEndpoint({
-  summary: 'Create user with validation docs',
-  response: UserDto,
-  body: { type: CreateUserDto },
-  validation: {
-    errorExamples: [
-      { field: 'name', constraint: 'isNotEmpty', message: 'name should not be empty' },
-      { field: 'email', constraint: 'isEmail', message: 'email must be an email' },
-      { field: 'password', constraint: 'minLength', message: 'password must be longer than or equal to 8 characters' }
-    ]
-  }
+@Get('protected')
+@ApiEndpoint({
+  apiUrl: '@GET /api/v1/protected',
+  summary: 'Protected endpoint',
+  auth: [
+    { type: AUTH_TYPE.JWT, required: true, provider: 'access-token' },
+    { type: AUTH_TYPE.API_KEY, provider: 'api-key' },
+  ],
+  responses: {
+    [HttpStatus.OK]: { type: DataDto },
+  },
 })
-@Post()
-async createUser(@Body() dto: CreateUserDto) {}
-
-// Simple validation documentation
-@ApiValidationEndpoint({
-  summary: 'Create product',
-  response: ProductDto,
-  body: { type: CreateProductDto }
-})
-@Post()
-async createProduct(@Body() dto: CreateProductDto) {}
+async protectedRoute() {}
 ```
 
-### 📋 DTOs
+---
 
-#### API Response DTO
+### 2. Zod Validation
+
+#### Using Zod Decorators
 
 ```typescript
-import { ApiResponseDto, ApiResponseData } from 'nestjs-kit';
+import { ZodBody, ZodQuery, ZodParam } from '@nam088/nestjs-kit';
+import { z } from 'zod';
 
-// Create response DTO for User
-const UserResponseDto = ApiResponseDto(UserDto);
+// Define Zod schemas
+const createUserSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+  name: z.string().min(2).max(100),
+});
 
-// Usage in controller with object constructor (Recommended)
-@ApiGetEndpoint({
-  response: UserResponseDto
-})
+const userIdSchema = z.object({
+  id: z.string().uuid(),
+});
+
+const querySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+});
+
+@Controller('users')
+export class UserController {
+  @Post()
+  async create(@ZodBody(createUserSchema) dto: z.infer<typeof createUserSchema>) {
+    return this.userService.create(dto);
+  }
+
+  @Get(':id')
+  async findOne(@ZodParam(userIdSchema) params: z.infer<typeof userIdSchema>) {
+    return this.userService.findOne(params.id);
+  }
+
+  @Get()
+  async findAll(@ZodQuery(querySchema) query: z.infer<typeof querySchema>) {
+    return this.userService.findAll(query);
+  }
+}
+```
+
+#### Using ZodValidationPipe Directly
+
+```typescript
+import { ZodValidationPipe } from '@nam088/nestjs-kit';
+import { Body } from '@nestjs/common';
+
+@Post()
+async create(@Body(new ZodValidationPipe(createUserSchema)) dto: CreateUserDto) {
+  return this.userService.create(dto);
+}
+```
+
+---
+
+### 3. Response DTOs
+
+#### ApiResponseDto - Standardized Success Responses
+
+```typescript
+import { ApiResponseData, ApiResponseDto } from '@nam088/nestjs-kit';
+import { ApiResponse } from '@nestjs/swagger';
+import { HttpStatus } from '@nestjs/common';
+
+// In your controller - document with Swagger
 @Get(':id')
-async getUser(@Param('id') id: string) {
-  const user = await this.userService.findById(id);
+@ApiResponse({
+  status: HttpStatus.OK,
+  type: ApiResponseDto(UserDto),
+})
+async findOne(@Param('id') id: string) {
+  const user = await this.userService.findOne(id);
   
-  // Using object constructor
+  // Return standardized response
   return new ApiResponseData({
     data: user,
     message: 'User retrieved successfully',
-    statusCode: 200
+    statusCode: 200,
   });
 }
 
-// Alternative: Using static factory method (Backward compatibility)
-return ApiResponseData.create(
-  userDto, 
-  'User retrieved successfully', 
-  200
-);
+// Alternative using static factory method
+async create(@Body() dto: CreateUserDto) {
+  const user = await this.userService.create(dto);
+  return ApiResponseData.create(user, 'User created successfully', 201);
+}
+
+// For delete operations (null data)
+@Delete(':id')
+@ApiResponse({
+  status: HttpStatus.OK,
+  type: ApiResponseDto(null),
+})
+async delete(@Param('id') id: string) {
+  await this.userService.delete(id);
+  return new ApiResponseData({
+    data: null,
+    message: 'User deleted successfully',
+    statusCode: 200,
+  });
+}
 ```
 
-#### Error Response DTO
+Response format:
+```json
+{
+  "statusCode": 200,
+  "message": "User retrieved successfully",
+  "data": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "email": "user@example.com",
+    "name": "John Doe"
+  }
+}
+```
+
+#### PaginatedResponseDto - Paginated Responses
 
 ```typescript
-import { ErrorResponseDto } from 'nestjs-kit';
+import { ApiPaginatedResponseDto, PaginationDto } from '@nam088/nestjs-kit';
 
-@ApiEndpoint({
-  errors: [
-    HttpStatus.NOT_FOUND,
-    { 
-      status: HttpStatus.BAD_REQUEST, 
-      description: 'Invalid user data' 
+@Get()
+@ApiResponse({
+  status: HttpStatus.OK,
+  type: ApiPaginatedResponseDto(UserDto),
+})
+async findAll(@Query() pagination: PaginationDto) {
+  const { data, total } = await this.userService.findAll(pagination);
+  
+  return {
+    statusCode: 200,
+    message: 'Users retrieved successfully',
+    data,
+    meta: {
+      page: pagination.page,
+      limit: pagination.limit,
+      total,
+      totalPages: Math.ceil(total / pagination.limit),
     },
-    {
-      status: HttpStatus.CONFLICT,
-      description: 'User already exists'
-    }
-  ]
-})
-```
-
-#### Paginated Response DTO
-
-```typescript
-import { 
-  ApiPaginatedResponseDto, 
-  ApiCursorPaginatedResponseDto,
-  ApiPaginatedResponseData,
-  ApiCursorPaginatedResponseData,
-  Paging,
-  CursorPaging
-} from 'nestjs-kit';
-
-// Offset pagination
-const UserPaginatedResponseDto = ApiPaginatedResponseDto(UserDto);
-
-// Cursor pagination
-const UserCursorPaginatedResponseDto = ApiCursorPaginatedResponseDto(UserDto);
-
-// Usage in controller - Offset Pagination
-@ApiEndpoint({
-  response: UserPaginatedResponseDto,
-  pagination: PAGINATION_TYPE.OFFSET
-})
-@Get()
-async getUsers(@Query('page') page = 1, @Query('limit') limit = 10) {
-  const result = await this.userService.findWithPagination({ page, limit });
-  
-  // Method 1: Using object constructor (Recommended)
-  const paging = new Paging({
-    page: result.page,
-    limit: result.limit,
-    total: result.total,
-    currentPageSize: result.data.length
-    // Other fields will be auto-calculated
-  });
-
-  return new ApiPaginatedResponseData({
-    data: result.data,
-    paging,
-    message: 'Users retrieved successfully'
-  });
-
-  // Method 2: Using helper method (Easiest)
-  return ApiPaginatedResponseData.createWithAutoPaging({
-    data: result.data,
-    total: result.total,
-    page: result.page,
-    limit: result.limit,
-    message: 'Users retrieved successfully'
-  });
-
-  // Method 3: Using Paging helper method
-  const paging2 = Paging.createWithAutoCalculation({
-    page: result.page,
-    limit: result.limit,
-    total: result.total,
-    currentPageSize: result.data.length
-  });
-
-  return new ApiPaginatedResponseData({
-    data: result.data,
-    paging: paging2,
-    message: 'Users retrieved successfully'
-  });
-}
-
-// Usage in controller - Cursor Pagination
-@ApiEndpoint({
-  response: UserCursorPaginatedResponseDto,
-  pagination: PAGINATION_TYPE.CURSOR
-})
-@Get()
-async getProducts(@Query('cursor') cursor?: string, @Query('limit') limit = 20) {
-  const result = await this.productService.findWithCursorPagination({ cursor, limit });
-  
-  // Method 1: Using object constructor (Recommended)
-  const cursorPaging = new CursorPaging({
-    nextCursor: result.nextCursor,
-    hasNextPage: result.hasNextPage,
-    previousCursor: result.previousCursor,
-    firstCursor: result.firstCursor,
-    lastCursor: result.lastCursor,
-    currentPageSize: result.data.length,
-    total: result.total,
-    currentPage: result.currentPage
-    // Other fields will be auto-calculated
-  });
-
-  return new ApiCursorPaginatedResponseData({
-    data: result.data,
-    cursorPaging,
-    message: 'Products retrieved successfully'
-  });
-
-  // Method 2: Using helper method (Easiest)
-  return ApiCursorPaginatedResponseData.createWithAutoCursors({
-    data: result.data,
-    limit,
-    nextCursor: result.nextCursor,
-    previousCursor: result.previousCursor,
-    firstCursor: result.firstCursor,
-    lastCursor: result.lastCursor,
-    total: result.total,
-    currentPage: result.currentPage,
-    message: 'Products retrieved successfully'
-  });
-
-  // Method 3: Using CursorPaging helper method
-  const cursorPaging2 = CursorPaging.createWithAutoCalculation({
-    data: result.data as any[],
-    limit,
-    nextCursor: result.nextCursor,
-    previousCursor: result.previousCursor,
-    firstCursor: result.firstCursor,
-    lastCursor: result.lastCursor,
-    total: result.total,
-    currentPage: result.currentPage
-  });
-
-  return new ApiCursorPaginatedResponseData({
-    data: result.data,
-    cursorPaging: cursorPaging2,
-    message: 'Products retrieved successfully'
-  });
+  };
 }
 ```
 
-#### Pagination Constructor Examples
+---
+
+### 4. Global Exception Filter
+
+Set up the global exception filter in your `main.ts`:
 
 ```typescript
-// Paging Object Constructor Examples
-const paging = new Paging({
-  page: 1,
-  limit: 10,
-  total: 100
-  // Other fields auto-calculated
-});
-
-const paging2 = new Paging({
-  page: 2,
-  limit: 20,
-  total: 500,
-  currentPageSize: 20,
-  hasPreviousPage: true,
-  hasNextPage: true
-});
-
-// Using Paging helper method
-const paging3 = Paging.createWithAutoCalculation({
-  page: 3,
-  limit: 15,
-  total: 300,
-  currentPageSize: 15
-});
-
-// CursorPaging Object Constructor Examples
-const cursorPaging = new CursorPaging({
-  nextCursor: 'abc123',
-  hasNextPage: true
-});
-
-const cursorPaging2 = new CursorPaging({
-  nextCursor: 'def456',
-  hasNextPage: true,
-  previousCursor: 'abc123',
-  firstCursor: 'first123',
-  lastCursor: 'last789',
-  currentPageSize: 20,
-  total: 1000,
-  currentPage: 2
-});
-
-// Using CursorPaging helper method
-const cursorPaging3 = CursorPaging.createWithAutoCalculation({
-  data: dataArray,
-  limit,
-  nextCursor,
-  previousCursor,
-  firstCursor,
-  lastCursor,
-  total,
-  currentPage
-});
-```
-
-### 🔐 Multi-Provider Authentication
-
-#### Authentication Types
-
-```typescript
-import { AUTH_TYPE } from 'nestjs-kit';
-
-// Available auth types
-AUTH_TYPE.JWT        // JWT Bearer token
-AUTH_TYPE.API_KEY    // API Key authentication
-AUTH_TYPE.OAUTH2     // OAuth2 authentication
-AUTH_TYPE.BASIC      // Basic authentication
-AUTH_TYPE.COOKIE     // Cookie-based authentication
-
-// Multiple authentication providers support
-// JWT Providers: access-token, admin-token, service-token, refresh-token
-// API Key Providers: internal-key, external-key, query-api-key
-// OAuth2 Providers: google, github, facebook, etc.
-```
-
-#### Multiple Authentication Providers
-
-```typescript
-// Single provider
-@ApiEndpoint({
-  auth: { type: AUTH_TYPE.JWT, provider: 'access-token', required: true }
-})
-
-// Multiple providers (OR logic)
-@ApiEndpoint({
-  auth: [
-    { type: AUTH_TYPE.JWT, provider: 'access-token', required: false },
-    { type: AUTH_TYPE.JWT, provider: 'admin-token', required: false },
-    { type: AUTH_TYPE.API_KEY, provider: 'internal-key', required: false },
-  ]
-})
-
-// Multiple API Key providers
-@ApiEndpoint({
-  auth: [
-    { type: AUTH_TYPE.API_KEY, provider: 'prod-key' },
-    { type: AUTH_TYPE.API_KEY, provider: 'staging-key' },
-  ]
-})
-```
-
-#### OAuth2 Providers
-
-```typescript
-// Google OAuth2
-@ApiEndpoint({
-  auth: { type: AUTH_TYPE.OAUTH2, provider: 'google', scopes: ['https://www.googleapis.com/auth/userinfo.profile'] }
-})
-
-// GitHub OAuth2
-@ApiEndpoint({
-  auth: { type: AUTH_TYPE.OAUTH2, provider: 'github', scopes: ['user'] }
-})
-
-// Multiple OAuth2 providers
-@ApiEndpoint({
-  auth: [
-    { type: AUTH_TYPE.OAUTH2, provider: 'google', scopes: ['https://www.googleapis.com/auth/userinfo.profile'] },
-    { type: AUTH_TYPE.OAUTH2, provider: 'github', scopes: ['user'] },
-  ]
-})
-```
-
-#### API Key Providers
-
-```typescript
-// Header-based API Key
-@ApiEndpoint({
-  auth: { type: AUTH_TYPE.API_KEY, provider: 'internal-key' }
-})
-
-// Query-based API Key
-@ApiEndpoint({
-  auth: { type: AUTH_TYPE.API_KEY, provider: 'query-api-key' }
-})
-
-// Cookie-based API Key
-@ApiEndpoint({
-  auth: { type: AUTH_TYPE.API_KEY, provider: 'cookie-api-key' }
-})
-```
-
-### 🔧 Constants
-
-#### Pagination Types
-
-```typescript
-import { PAGINATION_TYPE } from 'nestjs-kit';
-
-PAGINATION_TYPE.OFFSET  // Offset-based pagination
-PAGINATION_TYPE.CURSOR  // Cursor-based pagination
-```
-
-#### Database Operators
-
-```typescript
-import { OPERATOR } from 'nestjs-kit';
-
-// Available operators for queries
-OPERATOR.EQ    // Equal
-OPERATOR.NE    // Not equal
-OPERATOR.GT    // Greater than
-OPERATOR.GTE   // Greater than or equal
-OPERATOR.LT    // Less than
-OPERATOR.LTE   // Less than or equal
-OPERATOR.LIKE  // Like (string matching)
-OPERATOR.IN    // In array
-OPERATOR.NIN   // Not in array
-```
-
-#### Pagination Types
-
-```typescript
-import { PAGINATION_TYPE } from 'nestjs-kit';
-
-PAGINATION_TYPE.OFFSET  // Offset-based pagination
-PAGINATION_TYPE.CURSOR  // Cursor-based pagination
-```
-
-#### Database Operators
-
-```typescript
-import { OPERATOR } from 'nestjs-kit';
-
-// Available operators for queries
-OPERATOR.EQ    // Equal
-OPERATOR.NE    // Not equal
-OPERATOR.GT    // Greater than
-OPERATOR.GTE   // Greater than or equal
-OPERATOR.LT    // Less than
-OPERATOR.LTE   // Less than or equal
-OPERATOR.LIKE  // Like (string matching)
-OPERATOR.IN    // In array
-OPERATOR.NIN   // Not in array
-```
-
-### 🛡️ Filters
-
-#### HTTP Exception Filter
-
-```typescript
-import { HttpExceptionFilter } from 'nestjs-kit';
+import { HttpExceptionFilter } from '@nam088/nestjs-kit';
 import { Reflector } from '@nestjs/core';
 
-// In your main.ts
-app.useGlobalFilters(new HttpExceptionFilter(app.get(Reflector)));
-
-// Or in a controller
-@UseFilters(new HttpExceptionFilter(reflector))
-export class AppController {}
-
-// With custom options
-app.useGlobalFilters(
-  new HttpExceptionFilter(
-    app.get(Reflector),
-    {
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  
+  // Get Reflector instance
+  const reflector = app.get(Reflector);
+  
+  // Apply global exception filter
+  app.useGlobalFilters(
+    new HttpExceptionFilter(reflector, {
       isDevelopment: process.env.NODE_ENV === 'development',
-      enableSanitization: true,
-      enableRateLimitTracking: true,
+      enableSanitization: true, // Remove sensitive data in production
+      enableMetrics: true, // Track error metrics
+      enableRateLimitTracking: true, // Track rate limit violations
       customErrorMessages: {
-        404: 'Resource not found',
-        500: 'Internal server error'
-      }
-    }
-  )
-);
+        404: 'The resource you are looking for does not exist',
+        500: 'Something went wrong on our end',
+      },
+    })
+  );
+
+  await app.listen(3000);
+}
+bootstrap();
 ```
 
-#### Validation Exception
+#### Error Response Format
 
-Custom validation exception with structured error handling:
-
-```typescript
-import { ValidationException } from 'nestjs-kit';
-
-// Manual validation
-if (!user.email) {
-  throw new ValidationException([
-    {
-      property: 'email',
-      constraints: {
-        isNotEmpty: 'Email is required'
-      }
-    }
-  ]);
-}
-
-// Multiple validation errors
-if (!user.email || !user.password) {
-  throw new ValidationException([
-    {
-      property: 'email',
-      constraints: {
-        isNotEmpty: 'Email is required'
-      }
-    },
-    {
-      property: 'password',
-      constraints: {
-        isNotEmpty: 'Password is required',
-        minLength: 'Password must be at least 8 characters'
-      }
-    }
-  ]);
-}
-```
-
-**Response Format:**
 ```json
 {
   "statusCode": 400,
   "error": "Bad Request",
   "message": "Validation failed",
   "errors": [
-    "name should not be empty",
-    "email must be an email"
+    "email must be a valid email",
+    "password must be at least 8 characters"
   ],
-  "fieldErrors": {
-    "name": {
-      "isNotEmpty": "name should not be empty"
-    },
-    "email": {
-      "isEmail": "email must be an email"
-    }
-  },
   "path": "/api/users",
   "timestamp": "2025-01-15T10:30:00.000Z",
   "requestId": "abc123-def456-ghi789"
 }
 ```
 
-## 🎯 Examples
+---
 
-### Complete E-commerce Product Controller
+### 5. Swagger Configuration
+
+Set up Swagger in your `main.ts`:
 
 ```typescript
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Put, 
-  Delete, 
-  Body, 
-  Param, 
-  Query 
-} from '@nestjs/common';
-import { 
-  ApiGetEndpoint, 
-  ApiValidationEndpoint, 
-  ApiPutEndpoint, 
+import { setUpSwagger } from '@nam088/nestjs-kit';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  
+  // Configure Swagger
+  setUpSwagger(app, {
+    title: 'My E-commerce API',
+    description: 'REST API for e-commerce platform',
+    version: '1.0.0',
+    nodeEnv: process.env.NODE_ENV || 'development',
+    port: 3000,
+    servers: [
+      { url: 'http://localhost:3000', description: 'Local' },
+      { url: 'https://api.example.com', description: 'Production' },
+    ],
+    jwt: {
+      providers: [
+        { name: 'access-token', bearerFormat: 'JWT', description: 'JWT access token' },
+        { name: 'refresh-token', bearerFormat: 'JWT', description: 'JWT refresh token' },
+      ],
+    },
+    apiKey: {
+      providers: [
+        { name: 'api-key', keyName: 'X-API-Key', in: 'header', description: 'API Key for service authentication' },
+      ],
+    },
+  });
+
+  await app.listen(3000);
+}
+bootstrap();
+```
+
+Access Swagger UI at: `http://localhost:3000/docs`
+
+---
+
+### 6. ClampNumber Decorator
+
+Automatically clamp numeric values:
+
+```typescript
+import { ClampNumber } from '@nam088/nestjs-kit';
+
+export class CreateProductDto {
+  @ClampNumber({ min: 0, max: 100 })
+  discount: number; // Will be clamped between 0-100
+
+  @ClampNumber({ min: 1, max: 999999 })
+  quantity: number; // Will be clamped between 1-999999
+}
+
+// Input: { discount: 150, quantity: -5 }
+// After transform: { discount: 100, quantity: 1 }
+```
+
+---
+
+## 🎯 Advanced Examples
+
+### Complete CRUD Controller
+
+```typescript
+import {
+  ApiGetEndpoint,
+  ApiPostEndpoint,
+  ApiPatchEndpoint,
   ApiDeleteEndpoint,
+  ApiPaginatedEndpoint,
   AUTH_TYPE,
   PAGINATION_TYPE,
-  HttpStatus 
-} from 'nestjs-kit';
+  PaginationDto,
+  ZodBody,
+  ZodParam,
+  ApiResponseData,
+} from '@nam088/nestjs-kit';
+import { Controller, Get, Post, Patch, Delete, Query } from '@nestjs/common';
+import { HttpStatus } from '@nestjs/common';
+import { z } from 'zod';
+
+// Zod schemas
+const createProductSchema = z.object({
+  name: z.string().min(1).max(255),
+  price: z.number().min(0),
+  description: z.string().optional(),
+});
+
+const updateProductSchema = createProductSchema.partial();
+
+const productIdSchema = z.object({
+  id: z.string().uuid(),
+});
 
 @Controller('products')
 export class ProductController {
-  @ApiGetEndpoint({
-    summary: 'Get all products',
-    description: 'Retrieve a paginated list of products with filtering',
+  @Get()
+  @ApiPaginatedEndpoint({
+    apiUrl: '@GET /api/v1/products',
+    summary: 'List all products',
     tags: ['Products'],
-    response: ProductDto,
     paginationType: PAGINATION_TYPE.OFFSET,
     queries: [
-      { name: 'category', type: 'string' },
-      { name: 'minPrice', type: 'number' },
-      { name: 'maxPrice', type: 'number' },
-      { name: 'inStock', type: 'boolean' },
-      { name: 'sortBy', type: 'string', enum: ['name', 'price', 'createdAt'] }
+      { name: 'page', type: 'number', description: 'Page number', example: 1 },
+      { name: 'limit', type: 'number', description: 'Items per page', example: 10 },
+      { name: 'q', type: 'string', description: 'Search query', required: false },
     ],
-    auth: { type: AUTH_TYPE.JWT, provider: 'access-token', required: false },
-    includeCommonErrors: true
-  })
-  @Get()
-  async getProducts(@Query() query: GetProductsQueryDto) {
-    return this.productService.findAll(query);
-  }
-
-  @ApiGetEndpoint({
-    summary: 'Get product by ID',
-    description: 'Retrieve a specific product by its ID',
-    tags: ['Products'],
-    response: ProductDto,
-    params: [{ name: 'id', type: 'uuid', description: 'Product ID' }],
-    auth: { type: AUTH_TYPE.JWT, provider: 'access-token', required: false },
-    errors: [HttpStatus.NOT_FOUND]
-  })
-  @Get(':id')
-  async getProduct(@Param('id') id: string) {
-    return this.productService.findById(id);
-  }
-
-  @ApiValidationEndpoint({
-    summary: 'Create new product',
-    description: 'Create a new product with the provided data',
-    tags: ['Products'],
-    response: ProductDto,
-    body: { type: CreateProductDto, description: 'Product creation data' },
-    auth: { type: AUTH_TYPE.JWT, provider: 'access-token', required: true },
-    errors: [HttpStatus.CONFLICT],
-    validation: {
-      errorExamples: [
-        { field: 'name', constraint: 'isNotEmpty', message: 'name should not be empty' },
-        { field: 'price', constraint: 'isPositive', message: 'price must be a positive number' },
-        { field: 'stock', constraint: 'min', message: 'stock must not be less than 0' }
-      ]
-    }
-  })
-  @Post()
-  async createProduct(@Body() createProductDto: CreateProductDto) {
-    return this.productService.create(createProductDto);
-  }
-
-  @ApiValidationEndpoint({
-    summary: 'Update product',
-    description: 'Update an existing product',
-    tags: ['Products'],
-    response: ProductDto,
-    body: { type: UpdateProductDto },
-    params: [{ name: 'id', type: 'uuid' }],
-    auth: { type: AUTH_TYPE.JWT, provider: 'access-token', required: true },
-    errors: [HttpStatus.NOT_FOUND],
-    validation: {
-      errorExamples: [
-        { field: 'name', constraint: 'minLength', message: 'name must be longer than or equal to 3 characters' },
-        { field: 'price', constraint: 'isPositive', message: 'price must be a positive number' }
-      ]
-    }
-  })
-  @Put(':id')
-  async updateProduct(
-    @Param('id') id: string, 
-    @Body() updateProductDto: UpdateProductDto
-  ) {
-    return this.productService.update(id, updateProductDto);
-  }
-
-  @ApiDeleteEndpoint({
-    summary: 'Delete product',
-    description: 'Permanently delete a product',
-    tags: ['Products'],
-    params: [{ name: 'id', type: 'uuid' }],
-    auth: { type: AUTH_TYPE.JWT, provider: 'admin-token', required: true },
-    errors: [HttpStatus.NOT_FOUND, HttpStatus.FORBIDDEN]
-  })
-  @Delete(':id')
-  async deleteProduct(@Param('id') id: string) {
-    return this.productService.delete(id);
-  }
-
-  // Example with multiple authentication providers
-  @ApiValidationEndpoint({
-    summary: 'Bulk product operations',
-    description: 'Admin-only bulk operations with multiple auth options',
-    tags: ['Products', 'Admin'],
-    response: ProductDto,
-    body: { type: BulkProductDto },
-    auth: [
-      { type: AUTH_TYPE.JWT, provider: 'admin-token', required: true },
-      { type: AUTH_TYPE.API_KEY, provider: 'internal-key', required: false },
-    ],
-    errors: [HttpStatus.FORBIDDEN, HttpStatus.BAD_REQUEST],
-  })
-  @Post('bulk')
-  async bulkOperations(@Body() bulkDto: BulkProductDto) {
-    return this.productService.bulkOperations(bulkDto);
-  }
-}
-```
-
-### Complete DTO Examples
-
-#### Product DTOs
-
-```typescript
-import { 
-  StringField, 
-  NumberField, 
-  ArrayField, 
-  DateField,
-  BooleanField,
-  UUIDField,
-  CurrencyField,
-  EnumField,
-  ClassField
-} from 'nestjs-kit';
-
-export class CreateProductDto {
-  @StringField({ 
-    minLength: 3, 
-    maxLength: 100,
-    description: 'Product name',
-    toLowerCase: true,
-    trim: true
-  })
-  name!: string;
-
-  @StringField({ 
-    maxLength: 1000,
-    description: 'Product description'
-  })
-  description!: string;
-
-  @CurrencyField({ 
-    min: 0,
-    description: 'Product price in USD'
-  })
-  price!: number;
-
-  @NumberField({ 
-    min: 0,
-    description: 'Available stock quantity'
-  })
-  stock!: number;
-
-  @ArrayField(() => String, { 
-    minSize: 1,
-    maxSize: 10,
-    uniqueItems: true,
-    description: 'Product categories'
-  })
-  categories!: string[];
-
-  @UUIDField({ 
-    description: 'Brand ID' 
-  })
-  brandId!: string;
-
-  @BooleanField({ 
-    description: 'Product availability status' 
-  })
-  isActive!: boolean;
-
-  @DateField({ 
-    description: 'Product release date' 
-  })
-  releaseDate!: Date;
-}
-
-export class UpdateProductDto {
-  @StringFieldOptional({ 
-    minLength: 3, 
-    maxLength: 100 
-  })
-  name?: string;
-
-  @StringFieldOptional({ 
-    maxLength: 1000 
-  })
-  description?: string;
-
-  @CurrencyFieldOptional({ 
-    min: 0 
-  })
-  price?: number;
-
-  @NumberFieldOptional({ 
-    min: 0 
-  })
-  stock?: number;
-
-  @ArrayFieldOptional(() => String, { 
-    minSize: 1,
-    maxSize: 10 
-  })
-  categories?: string[];
-
-  @BooleanFieldOptional()
-  isActive?: boolean;
-}
-```
-
-#### User DTOs
-
-```typescript
-import { 
-  StringField, 
-  EmailField, 
-  PasswordField,
-  PhoneField,
-  DateField,
-  BooleanField,
-  UUIDField,
-  ArrayField,
-  ClassField
-} from 'nestjs-kit';
-
-export class CreateUserDto {
-  @StringField({ 
-    minLength: 2, 
-    maxLength: 50,
-    description: 'User first name'
-  })
-  firstName!: string;
-
-  @StringField({ 
-    minLength: 2, 
-    maxLength: 50,
-    description: 'User last name'
-  })
-  lastName!: string;
-
-  @EmailField({ 
-    description: 'User email address',
-    toLowerCase: true
-  })
-  email!: string;
-
-  @PasswordField(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/, {
-    description: 'Strong password with special characters'
-  })
-  password!: string;
-
-  @PhoneField('VN', { 
-    description: 'Contact phone number' 
-  })
-  phone!: string;
-
-  @DateField({ 
-    description: 'User birth date' 
-  })
-  birthDate!: Date;
-
-  @BooleanField({ 
-    description: 'Email verification status' 
-  })
-  isEmailVerified!: boolean;
-
-  @ArrayField(() => String, { 
-    description: 'User roles' 
-  })
-  roles!: string[];
-
-  @UUIDField({ 
-    description: 'Organization ID' 
-  })
-  organizationId!: string;
-}
-
-export class UserProfileDto {
-  @StringField({ 
-    minLength: 2, 
-    maxLength: 50 
-  })
-  firstName!: string;
-
-  @StringField({ 
-    minLength: 2, 
-    maxLength: 50 
-  })
-  lastName!: string;
-
-  @EmailField()
-  email!: string;
-
-  @PhoneField('VN')
-  phone!: string;
-
-  @DateField()
-  birthDate!: Date;
-
-  @BooleanField()
-  isEmailVerified!: boolean;
-
-  @ArrayField(() => String)
-  roles!: string[];
-
-  @ClassField(() => AddressDto)
-  address!: AddressDto;
-}
-```
-
-### Advanced Validation Examples
-
-#### Custom Validators
-
-```typescript
-import { 
-  StringField, 
-  FieldUtils 
-} from 'nestjs-kit';
-
-export class AdvancedUserDto {
-  @StringField({
-    customValidators: [
-      FieldUtils.createCustomValidator(
-        'isStrongPassword',
-        (value: string) => {
-          return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(value);
-        },
-        'Password must contain at least one uppercase letter, one lowercase letter, one number and one special character'
-      )
-    ],
-    messages: {
-      required: 'Mật khẩu là bắt buộc',
-      minLength: 'Mật khẩu phải có ít nhất {minLength} ký tự'
+    responses: {
+      [HttpStatus.OK]: {
+        type: ProductDto,
+        isArray: true,
+        description: 'Products retrieved successfully',
+      },
     },
-    minLength: 8
   })
-  password!: string;
+  async findAll(@Query() pagination: PaginationDto) {
+    const result = await this.productService.findAll(pagination);
+    return result;
+  }
 
-  @StringField({
-    customValidators: [
-      FieldUtils.createCustomValidator(
-        'isVietnamesePhone',
-        (value: string) => {
-          return /^(\+84|84|0)[3|5|7|8|9][0-9]{8}$/.test(value);
-        },
-        'Số điện thoại phải là số điện thoại Việt Nam hợp lệ'
-      )
-    ]
+  @Get(':id')
+  @ApiGetEndpoint({
+    apiUrl: '@GET /api/v1/products/:id',
+    summary: 'Get product by ID',
+    tags: ['Products'],
+    params: [{ name: 'id', type: 'uuid', description: 'Product ID' }],
+    response: ProductDto,
+    includeCommonErrors: true,
   })
-  phone!: string;
+  async findOne(@ZodParam(productIdSchema) params: z.infer<typeof productIdSchema>) {
+    const product = await this.productService.findOne(params.id);
+    return new ApiResponseData({
+      data: product,
+      message: 'Product retrieved successfully',
+    });
+  }
+
+  @Post()
+  @ApiPostEndpoint({
+    apiUrl: '@POST /api/v1/products',
+    summary: 'Create new product',
+    tags: ['Products'],
+    auth: { type: AUTH_TYPE.JWT, required: true },
+    body: { type: CreateProductDto, required: true },
+    response: ProductDto,
+    validation: {
+      includeValidationErrors: true,
+      errorExamples: [
+        { field: 'name', constraint: 'minLength', message: 'name must not be empty' },
+        { field: 'price', constraint: 'min', message: 'price must be greater than or equal to 0' },
+      ],
+    },
+    includeCommonErrors: true,
+  })
+  async create(@ZodBody(createProductSchema) dto: z.infer<typeof createProductSchema>) {
+    const product = await this.productService.create(dto);
+    return ApiResponseData.create(product, 'Product created successfully', 201);
+  }
+
+  @Patch(':id')
+  @ApiPatchEndpoint({
+    apiUrl: '@PATCH /api/v1/products/:id',
+    summary: 'Update product',
+    tags: ['Products'],
+    auth: { type: AUTH_TYPE.JWT, required: true },
+    params: [{ name: 'id', type: 'uuid', description: 'Product ID' }],
+    body: { type: UpdateProductDto, required: true },
+    response: ProductDto,
+    includeCommonErrors: true,
+  })
+  async update(
+    @ZodParam(productIdSchema) params: z.infer<typeof productIdSchema>,
+    @ZodBody(updateProductSchema) dto: z.infer<typeof updateProductSchema>,
+  ) {
+    const product = await this.productService.update(params.id, dto);
+    return new ApiResponseData({
+      data: product,
+      message: 'Product updated successfully',
+    });
+  }
+
+  @Delete(':id')
+  @ApiDeleteEndpoint({
+    apiUrl: '@DELETE /api/v1/products/:id',
+    summary: 'Delete product',
+    tags: ['Products'],
+    auth: { type: AUTH_TYPE.JWT, required: true },
+    params: [{ name: 'id', type: 'uuid', description: 'Product ID' }],
+  })
+  async delete(@ZodParam(productIdSchema) params: z.infer<typeof productIdSchema>) {
+    await this.productService.delete(params.id);
+    return new ApiResponseData({
+      data: null,
+      message: 'Product deleted successfully',
+    });
+  }
 }
 ```
 
-#### Conditional Validation
+---
+
+## 📚 API Documentation
+
+### Decorators
+
+#### `@ApiEndpoint(options)`
+
+Comprehensive API endpoint documentation decorator.
+
+**Options:**
+- `apiUrl` (required): API route for tracing (e.g., `@GET /api/v1/users`)
+- `summary` (required): Short summary of the endpoint
+- `description`: Detailed description
+- `tags`: Swagger tags (string or array)
+- `auth`: Authentication configuration (single or array)
+- `body`: Request body configuration
+- `params`: Path parameter configuration
+- `queries`: Query parameter configuration
+- `responses`: Response configuration by status code
+- `errors`: Custom error responses
+- `includeCommonErrors`: Auto-include 400, 404, 500 errors
+- `validation`: Validation error documentation
+- `paginationType`: Pagination type (`PAGINATION_TYPE.OFFSET` or `PAGINATION_TYPE.CURSOR`)
+- `deprecated`: Mark endpoint as deprecated
+
+#### `@ClampNumber({ min, max })`
+
+Clamps numeric property values.
+
+#### `@ZodBody(schema)`, `@ZodParam(schema)`, `@ZodQuery(schema)`
+
+Validate request data with Zod schemas.
+
+### DTOs
+
+#### `ApiResponseDto(dataType)`
+
+Factory function for creating typed response DTOs.
+
+#### `ApiResponseData<T>`
+
+Class for creating standardized API responses.
 
 ```typescript
-import { 
-  BooleanField, 
-  StringField, 
-  ConditionalField 
-} from 'nestjs-kit';
-
-export class OrderDto {
-  @BooleanField()
-  hasDeliveryAddress!: boolean;
-
-  @ConditionalField(
-    (obj: OrderDto) => obj.hasDeliveryAddress,
-    StringField({
-      messages: {
-        required: 'Địa chỉ giao hàng là bắt buộc khi hasDeliveryAddress = true'
-      }
-    })
-  )
-  deliveryAddress?: string;
-
-  @BooleanField()
-  hasSpecialInstructions!: boolean;
-
-  @ConditionalField(
-    (obj: OrderDto) => obj.hasSpecialInstructions,
-    StringField({
-      maxLength: 500,
-      messages: {
-        required: 'Hướng dẫn đặc biệt là bắt buộc khi hasSpecialInstructions = true'
-      }
-    })
-  )
-  specialInstructions?: string;
-}
+new ApiResponseData({
+  data: T,
+  message?: string,
+  statusCode?: number,
+})
 ```
 
-## 🛠️ Configuration
+#### `PaginationDto`
 
-### Multiple Authentication Providers
+Standard pagination query parameters:
+- `page` (default: 1)
+- `limit` (default: 10, max: 100)
+- `q` (optional search query)
 
-Configure different authentication providers for your API:
+### Constants
 
-```typescript
-setUpSwagger(app, {
-  servers: [
-    { url: 'https://api.example.com', description: 'Production' },
-    { url: 'https://api-staging.example.com', description: 'Staging' },
-    { url: 'https://api-dev.example.com', description: 'Development' },
-  ],
-  apiKey: {
-    providers: [
-      {
-        name: 'prod-key',
-        in: 'header',
-        keyName: 'X-Prod-Key',
-        description: 'Production API Key',
-      },
-      {
-        name: 'staging-key',
-        in: 'header',
-        keyName: 'X-Staging-Key',
-        description: 'Staging API Key',
-      },
-      {
-        name: 'dev-key',
-        in: 'header',
-        keyName: 'X-Dev-Key',
-        description: 'Development API Key',
-      },
-    ],
-  },
-  jwt: {
-    providers: [
-      {
-        name: 'prod-access-token',
-        description: 'Production Access Token',
-      },
-      {
-        name: 'staging-access-token',
-        description: 'Staging Access Token',
-      },
-    ],
-  },
-});
-```
+#### `AUTH_TYPE`
+- `JWT`: JWT Bearer authentication
+- `API_KEY`: API Key authentication
+- `OAUTH2`: OAuth2 authentication
+- `BASIC`: Basic authentication
+- `COOKIE`: Cookie-based authentication
 
-### Validation Configuration
+#### `PAGINATION_TYPE`
+- `OFFSET`: Offset-based pagination
+- `CURSOR`: Cursor-based pagination
 
-```typescript
-import { validationPipeConfig, getValidationPipeConfig } from 'nestjs-kit';
+---
 
-// In your main.ts
-const app = await NestFactory.create(AppModule);
+## 🧪 Testing
 
-// Setup global validation pipe with custom exception factory
-app.useGlobalPipes(validationPipeConfig);
-
-// Or with custom options
-app.useGlobalPipes(getValidationPipeConfig({
-  transform: true,
-  whitelist: true,
-  forbidNonWhitelisted: true,
-  disableErrorMessages: false,
-}));
-
-// Or custom configuration
-app.useGlobalPipes(
-  new ValidationPipe({
-    transform: true,
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    exceptionFactory: validationExceptionFactory,
-  })
-);
-```
-
-### Swagger Configuration
-
-```typescript
-import { setUpSwagger } from 'nestjs-kit';
-
-// In your main.ts
-const app = await NestFactory.create(AppModule);
-
-// Enable CORS
-app.enableCors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
-  credentials: true,
-});
-
-// Global prefix
-app.setGlobalPrefix('api/v1');
-
-// Setup Swagger with multiple authentication providers and servers
-setUpSwagger(app, {
-  port: process.env.PORT || 3000,
-  title: 'E-commerce API',
-  description: 'Comprehensive e-commerce platform API with multi-provider authentication',
-  version: '1.0.0',
-  nodeEnv: process.env.NODE_ENV || 'development',
-  servers: [
-    { url: 'http://localhost:3000', description: 'Local Development' },
-    { url: 'https://api-staging.example.com', description: 'Staging Environment' },
-    { url: 'https://api.example.com', description: 'Production Environment' },
-  ],
-  jwt: {
-    providers: [
-      {
-        name: 'access-token',
-        description: 'JWT Access Token for regular users',
-      },
-      {
-        name: 'admin-token',
-        description: 'JWT Admin Token for administrative access',
-      },
-      {
-        name: 'service-token',
-        description: 'JWT Service Token for service-to-service communication',
-      },
-    ],
-  },
-  apiKey: {
-    providers: [
-      {
-        name: 'internal-key',
-        in: 'header',
-        keyName: 'X-Internal-Key',
-        description: 'Internal API Key for service-to-service communication',
-      },
-      {
-        name: 'external-key',
-        in: 'header',
-        keyName: 'X-External-Key',
-        description: 'External API Key for third-party integrations',
-      },
-    ],
-  },
-  oauth2: {
-    providers: [
-      {
-        name: 'google',
-        authorizationUrl: 'https://accounts.google.com/oauth/authorize',
-        tokenUrl: 'https://oauth2.googleapis.com/token',
-        scopes: {
-          'https://www.googleapis.com/auth/userinfo.profile': 'View profile',
-          'https://www.googleapis.com/auth/userinfo.email': 'View email',
-        },
-        description: 'Google OAuth2 authentication',
-      },
-      {
-        name: 'github',
-        authorizationUrl: 'https://github.com/login/oauth/authorize',
-        tokenUrl: 'https://github.com/login/oauth/access_token',
-        scopes: {
-          'user': 'Read user data',
-          'repo': 'Read repository data',
-        },
-        description: 'GitHub OAuth2 authentication',
-      },
-    ],
-  },
-});
-
-await app.listen(process.env.PORT || 3000);
-```
-
-### Environment Variables
-
-```env
-# Server Configuration
-PORT=3000
-NODE_ENV=development
-
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/ecommerce
-
-# JWT
-JWT_SECRET=your-super-secret-jwt-key
-JWT_EXPIRES_IN=7d
-
-# CORS
-ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
-
-# Rate Limiting
-RATE_LIMIT_TTL=60
-RATE_LIMIT_LIMIT=100
-
-# File Upload
-MAX_FILE_SIZE=5242880
-UPLOAD_PATH=./uploads
-```
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-### Development Setup
+The library includes comprehensive test coverage. Run tests:
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/e-commerce-platform-co.git
-
-# Install dependencies
-cd libs/utils
-npm install
-
-# Run tests
 npm test
+npm run test:coverage
+```
 
-# Run linting
-npm run lint
+---
 
-# Build the project
+## 🛠️ Development
+
+### Build
+
+```bash
 npm run build
 ```
 
-### Code Style
+### Lint
 
-- Follow TypeScript best practices
-- Use meaningful variable and function names
-- Add comprehensive JSDoc comments
-- Write unit tests for new features
-- Follow the existing code structure
+```bash
+npm run lint
+npm run lint:fix
+```
 
-## 📄 License
+### Watch Mode
 
-This project is licensed under the ISC License - see the [LICENSE](LICENSE) file for details.
+```bash
+npm run build:watch
+```
 
-## 🆘 Support
+---
 
-- 📖 [Documentation](https://docs.ecom-co.com)
-- 🐛 [Bug Reports](https://github.com/your-org/e-commerce-platform-co/issues)
-- 💬 [Discussions](https://github.com/your-org/e-commerce-platform-co/discussions)
-- 📧 [Email Support](mailto:support@ecom-co.com)
+## 📝 License
 
-## 🙏 Acknowledgments
+ISC © [Nam077](https://github.com/Nam088)
 
-- [NestJS](https://nestjs.com/) - Progressive Node.js framework
-- [class-validator](https://github.com/typestack/class-validator) - Validation library
-- [class-transformer](https://github.com/typestack/class-transformer) - Transformation library
-- [@nestjs/swagger](https://docs.nestjs.com/openapi/introduction) - API documentation
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome!
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## 📞 Support
+
+- Repository: [https://github.com/Nam088/nestjs-kit](https://github.com/Nam088/nestjs-kit)
+- Issues: [https://github.com/Nam088/nestjs-kit/issues](https://github.com/Nam088/nestjs-kit/issues)
+- NPM: [https://www.npmjs.com/package/@nam088/nestjs-kit](https://www.npmjs.com/package/@nam088/nestjs-kit)
 
 ---
 
 <div align="center">
 
-Made with ❤️ by the E-commerce Platform Team
-
-[Website](https://ecom-co.com) • [Blog](https://blog.ecom-co.com) • [Twitter](https://twitter.com/ecom_co)
+**Made with ❤️ for the NestJS community**
 
 </div>
+

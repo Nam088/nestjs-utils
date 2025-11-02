@@ -21,7 +21,6 @@ export class ZodValidationPipe implements PipeTransform {
         // Handle undefined or null values
         if (value === undefined || value === null) {
             throw new BadRequestException({
-                message: 'Validation failed',
                 errors: [
                     {
                         code: 'invalid_type',
@@ -31,6 +30,7 @@ export class ZodValidationPipe implements PipeTransform {
                         received: value === null ? 'null' : 'undefined',
                     },
                 ],
+                message: 'Validation failed',
             });
         }
 
@@ -39,8 +39,8 @@ export class ZodValidationPipe implements PipeTransform {
         } catch (error) {
             if (error instanceof ZodError) {
                 throw new BadRequestException({
-                    message: 'Validation failed',
                     errors: error.issues,
+                    message: 'Validation failed',
                 });
             }
 

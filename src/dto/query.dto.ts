@@ -63,4 +63,3 @@ export const createCustomQueryDto = (filterExample: Record<string, unknown>) => 
  * Provides filtering, ordering, and field selection capabilities.
  */
 export class QueryDto extends createCustomQueryDto({ and: [{ '==': [{ var: 'email' }, 'test@example.com'] }] }) {}
-

@@ -8,8 +8,6 @@ export * from './decorators';
 
 export * from './dto';
 
-export * from './exeption';
-
 export * from './filters';
 
 export * from './pipes';

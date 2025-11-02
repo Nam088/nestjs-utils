@@ -4,7 +4,7 @@ import { Reflector } from '@nestjs/core';
 
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 
-import { get, isArray, isObject, isString, set, size } from 'lodash';
+import { get, isArray, isObject, isString, size } from 'lodash';
 
 import { v4 as uuidv4 } from 'uuid';
 
@@ -121,7 +121,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
      * @returns {ErrorResponseDto} Formatted error response
      */
     private buildErrorPayload(
-        status: number,
+        status: HttpStatus,
         errorResponse:
             | string
             | {
@@ -237,7 +237,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
         return (
             (request.headers['x-forwarded-for'] as string)?.split(',')[0] ||
             (request.headers['x-real-ip'] as string) ||
-            request.connection.remoteAddress ||
             request.socket.remoteAddress ||
             'unknown'
         );
